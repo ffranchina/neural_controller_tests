@@ -1,6 +1,5 @@
 import os
 import random
-import pickle
 
 import model_platooning
 import misc
@@ -8,7 +7,6 @@ import architecture
 
 import torch
 
-import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 

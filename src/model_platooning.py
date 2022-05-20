@@ -1,6 +1,4 @@
-import json
 import torch
-import numpy as np
 
 from diffquantitative import DiffQuantitativeSemantic
 

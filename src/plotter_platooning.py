@@ -71,7 +71,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
         norm=customnorm,
     )
     ax.set(
-        xlabel="$\Delta$v between leader and follower ($m/s$)", ylabel="Distance ($m$)"
+        xlabel="$\\Delta$v between leader and follower ($m/s$)", ylabel="Distance ($m$)"
     )
 
     cb = fig.colorbar(sp)

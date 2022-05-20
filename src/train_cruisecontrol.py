@@ -1,11 +1,7 @@
-import os
-
 import misc
 import architecture
 import model_cruisecontrol
 
-import torch
-import torch.nn as nn
 import numpy as np
 
 # Specifies the initial conditions of the setup

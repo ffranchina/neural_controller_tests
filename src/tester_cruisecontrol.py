@@ -6,7 +6,6 @@ import misc
 import architecture
 
 import torch
-import torch.nn as nn
 import numpy as np
 
 from argparse import ArgumentParser
