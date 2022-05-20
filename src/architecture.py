@@ -10,7 +10,8 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 
 
 class Attacker(nn.Module):
-    """ NN architecture for the attacker """
+    """NN architecture for the attacker"""
+
     def __init__(self, model, n_hidden_layers, layer_size, noise_size, n_coeff=3):
         super().__init__()
 
@@ -34,14 +35,13 @@ class Attacker(nn.Module):
 
         self.nn = nn.Sequential(*layers)
 
-
     def forward(self, x):
-        """ Uses the NN's output to compute the coefficients of the policy function """
+        """Uses the NN's output to compute the coefficients of the policy function"""
         coefficients = self.nn(x)
         coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
 
         def policy_generator(t):
-            """ The policy function is defined as polynomial """
+            """The policy function is defined as polynomial"""
             basis = [t**i for i in range(self.n_coeff)]
             basis = torch.tensor(basis, dtype=torch.get_default_dtype())
             basis = torch.reshape(basis, (self.n_coeff, -1))
@@ -50,9 +50,8 @@ class Attacker(nn.Module):
         return policy_generator
 
 
-
 class Defender(nn.Module):
-    """ NN architecture for the defender """
+    """NN architecture for the defender"""
 
     def __init__(self, model, n_hidden_layers, layer_size, n_coeff=3):
         super().__init__()
@@ -76,14 +75,13 @@ class Defender(nn.Module):
 
         self.nn = nn.Sequential(*layers)
 
-
     def forward(self, x):
-        """ Uses the NN's output to compute the coefficients of the policy function """
+        """Uses the NN's output to compute the coefficients of the policy function"""
         coefficients = self.nn(x)
         coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
 
         def policy_generator(t):
-            """ The policy function is defined as polynomial """
+            """The policy function is defined as polynomial"""
             basis = [t**i for i in range(self.n_coeff)]
             basis = torch.tensor(basis, dtype=torch.get_default_dtype())
             basis = torch.reshape(basis, (self.n_coeff, -1))
@@ -92,12 +90,17 @@ class Defender(nn.Module):
         return policy_generator
 
 
-
 class Trainer:
-    """ The class contains the training logic """
+    """The class contains the training logic"""
 
-    def __init__(self, world_model, robustness_computer, \
-                attacker_nn, defender_nn, logging_dir=None):
+    def __init__(
+        self,
+        world_model,
+        robustness_computer,
+        attacker_nn,
+        defender_nn,
+        logging_dir=None,
+    ):
 
         self.model = world_model
         self.robustness_computer = robustness_computer
@@ -118,9 +121,8 @@ class Trainer:
         if self.logging:
             self.log = SummaryWriter(logging_dir)
 
-
     def train_attacker_step(self, time_horizon, dt, atk_static):
-        """ Training step for the attacker. The defender's passive. """
+        """Training step for the attacker. The defender's passive."""
         z = torch.rand(self.attacker.noise_size)
         oa = torch.tensor(self.model.agent.status)
         oe = torch.tensor(self.model.environment.status)
@@ -153,9 +155,8 @@ class Trainer:
 
         return float(loss.detach())
 
-
     def train_defender_step(self, time_horizon, dt, atk_static):
-        """ Training step for the defender. The attacker's passive. """
+        """Training step for the defender. The attacker's passive."""
         z = torch.rand(self.attacker.noise_size)
         oa = torch.tensor(self.model.agent.status)
         oe = torch.tensor(self.model.environment.status)
@@ -186,28 +187,35 @@ class Trainer:
 
         return float(loss.detach())
 
-
     def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
-        """ Trains both the attacker and the defender on the same
-            initial senario (different for each)
+        """Trains both the attacker and the defender on the same
+        initial senario (different for each)
         """
         atk_loss, def_loss = 0, 0
 
-        self.model.initialize_random() # samples a random initial state
+        self.model.initialize_random()  # samples a random initial state
         for i in range(atk_steps):
             atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
-            self.model.initialize_rewind() # restores the initial state
+            self.model.initialize_rewind()  # restores the initial state
 
-        self.model.initialize_random() # samples a random initial state
+        self.model.initialize_random()  # samples a random initial state
         for i in range(def_steps):
             def_loss = self.train_defender_step(time_horizon, dt, atk_static)
-            self.model.initialize_rewind() # restores the initial state
+            self.model.initialize_rewind()  # restores the initial state
 
         return (atk_loss, def_loss)
 
-
-    def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, atk_static=False):
-        """ Trains the architecture and provides logging and visual feedback """
+    def run(
+        self,
+        n_steps,
+        time_horizon=100,
+        dt=0.05,
+        *,
+        atk_steps=1,
+        def_steps=1,
+        atk_static=False
+    ):
+        """Trains the architecture and provides logging and visual feedback"""
         if self.logging:
             hist_every = int(n_steps / 10)
             hist_counter = 0
@@ -216,33 +224,40 @@ class Trainer:
             def_loss_vals = torch.zeros(n_steps)
 
         for i in tqdm(range(n_steps)):
-            atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt, atk_static)
+            atk_loss, def_loss = self.train(
+                atk_steps, def_steps, time_horizon, dt, atk_static
+            )
 
             if self.logging:
                 atk_loss_vals[i] = atk_loss
                 def_loss_vals[i] = def_loss
 
-                self.log.add_scalar('attacker loss', atk_loss, i)
-                self.log.add_scalar('defender loss', def_loss, i)
+                self.log.add_scalar("attacker loss", atk_loss, i)
+                self.log.add_scalar("defender loss", def_loss, i)
 
                 if (i + 1) % hist_every == 0:
                     a = hist_counter * hist_every
                     b = (hist_counter + 1) * hist_every
                     hist_counter += 1
 
-                    self.log.add_histogram('attacker loss hist', atk_loss_vals[a:b], i)
-                    self.log.add_histogram('defender loss hist', def_loss_vals[a:b], i)
+                    self.log.add_histogram("attacker loss hist", atk_loss_vals[a:b], i)
+                    self.log.add_histogram("defender loss hist", def_loss_vals[a:b], i)
 
         if self.logging:
             self.log.close()
 
 
-
 class Tester:
-    """ The class contains the testing logic """
+    """The class contains the testing logic"""
 
-    def __init__(self, world_model, robustness_computer, \
-                attacker_nn, defender_nn, logging_dir=None):
+    def __init__(
+        self,
+        world_model,
+        robustness_computer,
+        attacker_nn,
+        defender_nn,
+        logging_dir=None,
+    ):
 
         self.model = world_model
         self.robustness_computer = robustness_computer
@@ -256,7 +271,7 @@ class Tester:
             self.log = SummaryWriter(logging_dir)
 
     def test(self, time_horizon, dt):
-        """ Tests a whole episode """
+        """Tests a whole episode"""
         self.model.initialize_random()
 
         for t in range(time_horizon):
@@ -277,9 +292,8 @@ class Tester:
 
         return rho
 
-
     def run(self, times, time_horizon=1000, dt=0.05):
-        """ Test the architecture and provides logging """
+        """Test the architecture and provides logging"""
         if self.logging:
             def_rho_vals = torch.zeros(times)
 
@@ -290,5 +304,5 @@ class Tester:
                 def_rho_vals[i] = def_rho
 
         if self.logging:
-            self.log.add_histogram('defender robustness', def_rho_vals, i)
+            self.log.add_histogram("defender robustness", def_rho_vals, i)
             self.log.close()

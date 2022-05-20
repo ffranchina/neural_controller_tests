@@ -13,7 +13,7 @@ def test_constant_zero_dist():
     for env, ag in commands:
         m.step([ag], [env], 0.1)
 
-    dist = m.traces['dist']
+    dist = m.traces["dist"]
 
     assert np.all(np.isclose(dist, 0))
 
@@ -39,14 +39,14 @@ def test_save_restore_config():
     assert str(c) == str(old_c)
 
     assert m.agent.position != 0
-    c['agent']['position'] = 10
+    c["agent"]["position"] = 10
     m.restore(c)
     assert m.agent.position == 10
 
 
 def test_robustness_computation():
-    m = model.Model()    
-    rc = model.RobustnessComputer('G[1,5](dist > 1 & dist < 10)')
+    m = model.Model()
+    rc = model.RobustnessComputer("G[1,5](dist > 1 & dist < 10)")
 
     # 10 steps, agent stays on place, leader moves
     commands = np.ones((10, 2)) * (1, 0)

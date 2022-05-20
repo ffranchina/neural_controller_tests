@@ -2,9 +2,10 @@ import lark
 import copy
 import torch
 
+
 class LogicParser:
-    """ This class defines the grammar of the STL according to
-        the EBNF syntax and builds the AST accordingly.
+    """This class defines the grammar of the STL according to
+    the EBNF syntax and builds the AST accordingly.
     """
 
     _grammar = """
@@ -47,9 +48,10 @@ class LogicParser:
     def __str__(self):
         return self._tree.pretty()
 
+
 class Functions:
-    """ Encapsulate the set of functions allowed to be called
-        from the formula built starting from the AST
+    """Encapsulate the set of functions allowed to be called
+    from the formula built starting from the AST
     """
 
     @staticmethod
@@ -75,38 +77,38 @@ class Functions:
 
 @lark.v_args(inline=True)
 class _CodeBuilder(lark.Transformer):
-    """ Set of rules to traverse the AST and build a customized formula.
-        Basically it rewrites a formula starting from the AST to have
-        fine control on the operations that will be carried out the the
-        specific semantic.
+    """Set of rules to traverse the AST and build a customized formula.
+    Basically it rewrites a formula starting from the AST to have
+    fine control on the operations that will be carried out the the
+    specific semantic.
     """
 
     def atom(self, *args):
         operand_a, operator, operand_b = args
 
-        if operator == '>=':
-            return f'{operand_a} - {operand_b}'
-        elif operator == '>':
+        if operator == ">=":
+            return f"{operand_a} - {operand_b}"
+        elif operator == ">":
             raise NotImplementedError
 
-        elif operator == '<=':
-            return f'{operand_b} - {operand_a}'
-        elif operator == '<':
+        elif operator == "<=":
+            return f"{operand_b} - {operand_a}"
+        elif operator == "<":
             raise NotImplementedError
 
-        elif operator == '==' or '!=':
+        elif operator == "==" or "!=":
             raise NotImplementedError
 
     def op_not(self, preposition):
-        return 'fn.not_(' + preposition + ')'
+        return "fn.not_(" + preposition + ")"
 
     def op_and(self, preposition_a, preposition_b):
         args = [preposition_a, preposition_b]
-        return 'fn.and_(' + ', '.join(args) + ')'
+        return "fn.and_(" + ", ".join(args) + ")"
 
     def op_or(self, preposition_a, preposition_b):
         args = [preposition_a, preposition_b]
-        return 'fn.or_(' + ', '.join(args) + ')'
+        return "fn.or_(" + ", ".join(args) + ")"
 
     def ltl_op(self, *parameters):
         return list(map(lambda x: str(x.children[0]), parameters))
@@ -118,20 +120,20 @@ class _CodeBuilder(lark.Transformer):
             letter = params[0]
             operator_args = [preposition]
 
-        if letter == 'F':
-            function = 'fn.finally_'
-        elif letter == 'G':
-            function = 'fn.globally_'
+        if letter == "F":
+            function = "fn.finally_"
+        elif letter == "G":
+            function = "fn.globally_"
 
-        return function + '(' + ', '.join(operator_args) + ')'
+        return function + "(" + ", ".join(operator_args) + ")"
 
     def start(self, preposition):
         return str(preposition)
 
 
 class DiffQuantitativeSemantic:
-    """ This class is used as API to build an STL formula and apply
-        it to arbitrary signals according to the quantitative semantics.
+    """This class is used as API to build an STL formula and apply
+    it to arbitrary signals according to the quantitative semantics.
     """
 
     def __init__(self, logic_formula):
@@ -151,7 +153,7 @@ class DiffQuantitativeSemantic:
 
     def compute(self, **signals):
         environment = {
-            'fn': Functions,
+            "fn": Functions,
         }
         environment.update(signals)
 

@@ -13,15 +13,23 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser()
 parser.add_argument("dirname", help="model's directory")
-parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
-                    help="simulation repetions")
+parser.add_argument(
+    "-r",
+    "--repetitions",
+    dest="repetitions",
+    type=int,
+    default=1,
+    help="simulation repetions",
+)
 args = parser.parse_args()
 
 agent_position = 0
 agent_velocity = np.linspace(0, 20, 10)
 leader_position = np.linspace(1, 12, 15)
 leader_velocity = np.linspace(0, 20, 10)
-pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
+pg = misc.ParametersHyperparallelepiped(
+    agent_position, agent_velocity, leader_position, leader_velocity
+)
 
 physical_model = model_platooning.Model(pg.sample(sigma=0.05))
 
@@ -33,13 +41,14 @@ misc.load_models(attacker, defender, args.dirname)
 dt = 0.05
 steps = 300
 
+
 def run(mode=None):
     physical_model.initialize_random()
     conf_init = {
-        'ag_pos': physical_model.agent.position,
-        'ag_vel': physical_model.agent.velocity,
-        'env_pos': physical_model.environment.l_position,                     
-        'env_vel': physical_model.environment.l_velocity,
+        "ag_pos": physical_model.agent.position,
+        "ag_vel": physical_model.agent.velocity,
+        "env_pos": physical_model.environment.l_position,
+        "env_vel": physical_model.environment.l_velocity,
     }
 
     sim_t = []
@@ -56,11 +65,19 @@ def run(mode=None):
             oe = torch.tensor(physical_model.environment.status)
             z = torch.rand(attacker.noise_size)
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(2.) if i > 200 and i < 250 else torch.tensor(-2.)
+                atk_policy = (
+                    lambda x: torch.tensor(2.0)
+                    if i > 200 and i < 250
+                    else torch.tensor(-2.0)
+                )
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(2.) if i > 150 else torch.tensor(-2.)
+                atk_policy = (
+                    lambda x: torch.tensor(2.0) if i > 150 else torch.tensor(-2.0)
+                )
             elif mode == 2:
-                atk_policy = lambda x: torch.tensor(2.) if i < 150 else torch.tensor(-2.)
+                atk_policy = (
+                    lambda x: torch.tensor(2.0) if i < 150 else torch.tensor(-2.0)
+                )
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
             def_policy = defender(oa)
@@ -78,25 +95,27 @@ def run(mode=None):
         sim_ag_dist.append(physical_model.agent.distance.numpy())
 
         t += dt
-        
-    return {'init': conf_init,
-            'sim_t': np.array(sim_t),
-            'sim_ag_pos': np.array(sim_ag_pos),
-            'sim_ag_dist': np.array(sim_ag_dist),
-            'sim_ag_acc': np.array(sim_ag_acc),
-            'sim_env_pos': np.array(sim_env_pos),
-            'sim_env_acc': np.array(sim_env_acc),
+
+    return {
+        "init": conf_init,
+        "sim_t": np.array(sim_t),
+        "sim_ag_pos": np.array(sim_ag_pos),
+        "sim_ag_dist": np.array(sim_ag_dist),
+        "sim_ag_acc": np.array(sim_ag_acc),
+        "sim_env_pos": np.array(sim_env_pos),
+        "sim_env_acc": np.array(sim_env_acc),
     }
+
 
 records = []
 for i in range(args.repetitions):
     sim = {}
-    sim['pulse'] = run(0)
-    sim['step_up'] = run(1)
-    sim['step_down'] = run(2)
-    sim['atk'] = run()
-    
+    sim["pulse"] = run(0)
+    sim["step_up"] = run(1)
+    sim["step_down"] = run(2)
+    sim["atk"] = run()
+
     records.append(sim)
-    
-with open(os.path.join(args.dirname, 'sims.pkl'), 'wb') as f:
+
+with open(os.path.join(args.dirname, "sims.pkl"), "wb") as f:
     pickle.dump(records, f)
