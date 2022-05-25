@@ -215,32 +215,39 @@ class Trainer:
         atk_static=False
     ):
         """Trains the architecture and provides logging and visual feedback"""
-        if self.logging:
-            hist_every = int(n_steps / 10)
-            hist_counter = 0
-
-            atk_loss_vals = torch.zeros(n_steps)
-            def_loss_vals = torch.zeros(n_steps)
-
         for i in tqdm(range(n_steps)):
             atk_loss, def_loss = self.train(
                 atk_steps, def_steps, time_horizon, dt, atk_static
             )
 
             if self.logging:
-                atk_loss_vals[i] = atk_loss
-                def_loss_vals[i] = def_loss
+                atk_params = torch.cat(
+                    [torch.flatten(param.data) for param in self.attacker.parameters()]
+                )
+                atk_params_var, atk_params_mean = torch.var_mean(atk_params)
+                atk_norm = torch.linalg.norm(atk_params)
 
-                self.log.add_scalar("attacker loss", atk_loss, i)
-                self.log.add_scalar("defender loss", def_loss, i)
+                def_params = torch.cat(
+                    [torch.flatten(param.data) for param in self.defender.parameters()]
+                )
+                def_params_var, def_params_mean = torch.var_mean(def_params)
+                def_norm = torch.linalg.norm(def_params)
 
-                if (i + 1) % hist_every == 0:
-                    a = hist_counter * hist_every
-                    b = (hist_counter + 1) * hist_every
-                    hist_counter += 1
+                self.log.add_scalar("attacker_train/loss", atk_loss, i)
+                self.log.add_scalar("defender_train/loss", def_loss, i)
 
-                    self.log.add_histogram("attacker loss hist", atk_loss_vals[a:b], i)
-                    self.log.add_histogram("defender loss hist", def_loss_vals[a:b], i)
+                self.log.add_scalar(
+                    "attacker_train/weights variance", atk_params_var, i
+                )
+                self.log.add_scalar(
+                    "defender_train/weights variance", def_params_var, i
+                )
+
+                self.log.add_scalar("attacker_train/weights mean", atk_params_mean, i)
+                self.log.add_scalar("defender_train/weights mean", def_params_mean, i)
+
+                self.log.add_scalar("attacker_train/weights norm", atk_norm, i)
+                self.log.add_scalar("defender_train/weights norm", def_norm, i)
 
         if self.logging:
             self.log.close()
@@ -293,15 +300,11 @@ class Tester:
 
     def run(self, times, time_horizon=1000, dt=0.05):
         """Test the architecture and provides logging"""
-        if self.logging:
-            def_rho_vals = torch.zeros(times)
-
         for i in tqdm(range(times)):
             def_rho = self.test(time_horizon, dt)
 
             if self.logging:
-                def_rho_vals[i] = def_rho
+                self.log.add_scalar("defender_test/robustness", def_rho, i)
 
         if self.logging:
-            self.log.add_histogram("defender robustness", def_rho_vals, i)
             self.log.close()
