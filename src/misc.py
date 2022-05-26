@@ -28,13 +28,14 @@ class ParametersHyperparallelepiped:
     order to encourage the exploration of the space.
     """
 
-    def __init__(self, *ranges):
+    def __init__(self, *ranges, seed=None):
         self._ranges = ranges
+        self._rng = np.random.default_rng(seed)
 
     def sample(self, mu=0, sigma=1):
         while True:
             yield [
-                np.random.choice(r) + np.random.normal(mu, sigma)
+                self._rng.choice(r) + self._rng.normal(mu, sigma)
                 if isinstance(r, np.ndarray)
                 else float(r)
                 for r in self._ranges

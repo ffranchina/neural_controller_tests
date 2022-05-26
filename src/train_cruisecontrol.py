@@ -2,13 +2,18 @@ import misc
 import architecture
 import model_cruisecontrol
 
+import torch
+import random
 import numpy as np
+
+seed = random.randint(0, 10000)
+torch.manual_seed(seed)
 
 # Specifies the initial conditions of the setup
 agent_position = np.arange(model_cruisecontrol.ROAD_LENGTH)
 agent_velocity = np.linspace(-12, 12, 25)
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity)
+pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, seed=seed)
 
 # Instantiates the world's model
 physical_model = model_cruisecontrol.Model(pg.sample(sigma=0.05))
@@ -21,7 +26,7 @@ robustness_computer = model_cruisecontrol.RobustnessComputer(robustness_formula)
 attacker = architecture.Attacker(physical_model, 1, 10, 5, n_coeff=1)
 defender = architecture.Defender(physical_model, 2, 10)
 
-working_dir = "/tmp/experiment_cruise"
+working_dir = "/tmp/experiments/" + f"cruise_{seed:04}"
 
 # Instantiates the traning environment
 trainer = architecture.Trainer(
