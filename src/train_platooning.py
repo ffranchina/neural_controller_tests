@@ -41,17 +41,27 @@ tester = architecture.Tester(
 )
 
 dt = 0.05  # timestep
-training_steps = 1000  # number of episodes for training
-simulation_horizon = int(5 / dt)  # 5 seconds
+epochs = 10  # number of train/test iterations
 
-# Starts the training
-trainer.run(training_steps, simulation_horizon, dt, atk_steps=3, def_steps=5)
+training_steps = 100  # number of episodes for training
+train_simulation_horizon = int(5 / dt)  # 5 seconds
 
 test_steps = 10  # number of episodes for testing
-simulation_horizon = int(60 / dt)  # 60 seconds
+test_simulation_horizon = int(60 / dt)  # 60 seconds
 
-# Starts the testing
-tester.run(test_steps, simulation_horizon, dt)
+for epoch in range(epochs):
+    print(f"Epoch {epoch+1}/{epochs}:")
+    # Starts the training
+    trainer.run(
+        training_steps,
+        train_simulation_horizon,
+        dt,
+        atk_steps=3,
+        def_steps=5,
+        epoch=epoch,
+    )
+    # Starts the testing
+    tester.run(test_steps, test_simulation_horizon, dt, epoch=epoch)
 
 # Saves the trained models
 misc.save_models(attacker, defender, working_dir)

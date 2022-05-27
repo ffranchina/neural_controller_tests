@@ -34,13 +34,23 @@ trainer = architecture.Trainer(
 )
 
 dt = 0.05  # timestep
-training_steps = 300  # number of episodes for training
-simulation_horizon = int(0.5 / dt)  # 0.5 second
+epochs = 10  # number of train/test iterations
 
-# Starts the training
-trainer.run(
-    training_steps, simulation_horizon, dt, atk_steps=1, def_steps=10, atk_static=True
-)
+training_steps = 30  # number of episodes for training
+train_simulation_horizon = int(0.5 / dt)  # 5 seconds
+
+for epoch in range(epochs):
+    print(f"Epoch {epoch+1}/{epochs}:")
+    # Starts the training
+    trainer.run(
+        training_steps,
+        train_simulation_horizon,
+        dt,
+        atk_steps=1,
+        def_steps=10,
+        atk_static=True,
+        epoch=epoch,
+    )
 
 # Saves the trained models
 misc.save_models(attacker, defender, working_dir)

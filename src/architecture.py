@@ -212,7 +212,8 @@ class Trainer:
         *,
         atk_steps=1,
         def_steps=1,
-        atk_static=False
+        atk_static=False,
+        epoch=0
     ):
         """Trains the architecture and provides logging and visual feedback"""
         for i in tqdm(range(n_steps)):
@@ -233,21 +234,37 @@ class Trainer:
                 def_params_var, def_params_mean = torch.var_mean(def_params)
                 def_norm = torch.linalg.norm(def_params)
 
-                self.log.add_scalar("attacker_train/loss", atk_loss, i)
-                self.log.add_scalar("defender_train/loss", def_loss, i)
-
                 self.log.add_scalar(
-                    "attacker_train/weights variance", atk_params_var, i
+                    "attacker_train/loss", atk_loss, n_steps * epoch + i
                 )
                 self.log.add_scalar(
-                    "defender_train/weights variance", def_params_var, i
+                    "defender_train/loss", def_loss, n_steps * epoch + i
                 )
 
-                self.log.add_scalar("attacker_train/weights mean", atk_params_mean, i)
-                self.log.add_scalar("defender_train/weights mean", def_params_mean, i)
+                self.log.add_scalar(
+                    "attacker_train/weights variance",
+                    atk_params_var,
+                    n_steps * epoch + i,
+                )
+                self.log.add_scalar(
+                    "defender_train/weights variance",
+                    def_params_var,
+                    n_steps * epoch + i,
+                )
 
-                self.log.add_scalar("attacker_train/weights norm", atk_norm, i)
-                self.log.add_scalar("defender_train/weights norm", def_norm, i)
+                self.log.add_scalar(
+                    "attacker_train/weights mean", atk_params_mean, n_steps * epoch + i
+                )
+                self.log.add_scalar(
+                    "defender_train/weights mean", def_params_mean, n_steps * epoch + i
+                )
+
+                self.log.add_scalar(
+                    "attacker_train/weights norm", atk_norm, n_steps * epoch + i
+                )
+                self.log.add_scalar(
+                    "defender_train/weights norm", def_norm, n_steps * epoch + i
+                )
 
         if self.logging:
             self.log.close()
@@ -298,13 +315,15 @@ class Tester:
 
         return rho
 
-    def run(self, times, time_horizon=1000, dt=0.05):
+    def run(self, times, time_horizon=1000, dt=0.05, epoch=0):
         """Test the architecture and provides logging"""
         for i in tqdm(range(times)):
             def_rho = self.test(time_horizon, dt)
 
             if self.logging:
-                self.log.add_scalar("defender_test/robustness", def_rho, i)
+                self.log.add_scalar(
+                    "defender_test/robustness", def_rho, times * epoch + i
+                )
 
         if self.logging:
             self.log.close()
