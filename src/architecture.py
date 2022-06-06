@@ -317,8 +317,10 @@ class Tester:
 
     def run(self, times, time_horizon=1000, dt=0.05, epoch=0):
         """Test the architecture and provides logging"""
+        rho_list = torch.zeros(times)
         for i in tqdm(range(times)):
             def_rho = self.test(time_horizon, dt)
+            rho_list[i] = def_rho
 
             if self.logging:
                 self.log.add_scalar(
@@ -326,4 +328,7 @@ class Tester:
                 )
 
         if self.logging:
+            self.log.add_scalar(
+                "defender_test/avg robustness", torch.mean(rho_list), epoch
+            )
             self.log.close()
