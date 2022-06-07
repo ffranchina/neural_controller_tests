@@ -16,21 +16,21 @@ agent_velocity = np.linspace(-12, 12, 25)
 pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, seed=seed)
 
 # Instantiates the world's model
-physical_model = model_cruisecontrol.Model(pg.sample(sigma=0.05))
+simulator = misc.Simulator(model_cruisecontrol.Model, pg.sample(sigma=0.05))
 
 # Specifies the STL formula to compute the robustness
 robustness_formula = "G(v >= 4.75 & v <= 5.25)"
 robustness_computer = model_cruisecontrol.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures
-attacker = architecture.Attacker(physical_model, 1, 10, 5, n_coeff=1)
-defender = architecture.Defender(physical_model, 2, 10)
+attacker = architecture.Attacker(simulator, 1, 10, 5, n_coeff=1)
+defender = architecture.Defender(simulator, 2, 10)
 
 working_dir = "/tmp/experiments/" + f"cruise_{seed:04}"
 
 # Instantiates the traning environment
 trainer = architecture.Trainer(
-    physical_model, robustness_computer, attacker, defender, working_dir
+    simulator, robustness_computer, attacker, defender, working_dir
 )
 
 dt = 0.05  # timestep

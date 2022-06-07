@@ -20,30 +20,30 @@ pg = misc.ParametersHyperparallelepiped(
 )
 
 # Instantiates the world's model
-physical_model = model_platooning.Model(pg.sample(sigma=0.05))
+simulator = misc.Simulator(model_platooning.Model, pg.sample(sigma=0.05))
 
 # Specifies the STL formula to compute the robustness
 robustness_formula = "G(dist <= 10 & dist >= 2)"
 robustness_computer = model_platooning.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures
-attacker = architecture.Attacker(physical_model, 2, 10, 2)
-defender = architecture.Defender(physical_model, 2, 10)
+attacker = architecture.Attacker(simulator, 2, 10, 2)
+defender = architecture.Defender(simulator, 2, 10)
 
 working_dir = "/tmp/experiments/" + f"platooning_{seed:04}"
 
 # Instantiates the traning and test environments
 trainer = architecture.Trainer(
-    physical_model, robustness_computer, attacker, defender, working_dir
+    simulator, robustness_computer, attacker, defender, working_dir
 )
 tester = architecture.Tester(
-    physical_model, robustness_computer, attacker, defender, working_dir
+    simulator, robustness_computer, attacker, defender, working_dir
 )
 
 dt = 0.05  # timestep
 epochs = 10  # number of train/test iterations
 
-training_steps = 100  # number of episodes for training
+training_steps = 5  # number of episodes for training
 train_simulation_horizon = int(5 / dt)  # 5 seconds
 
 test_steps = 10  # number of episodes for testing

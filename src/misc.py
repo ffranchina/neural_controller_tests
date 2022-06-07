@@ -40,3 +40,32 @@ class ParametersHyperparallelepiped:
                 else float(r)
                 for r in self._ranges
             ]
+
+
+class Simulator:
+    def __init__(self, physical_model_class, param_generator):
+        self.model = physical_model_class()
+        self._param_generator = param_generator
+
+        self._previous_initial_state = None
+
+    def step(self, env_input, agent_input, dt):
+        """Updates the physical world with the evolution of
+        a single instant of time.
+        """
+        self.model.step(env_input, agent_input, dt)
+
+    def reset_to(self, parameters):
+        """Sets the world's state as specified"""
+        self._last_initial_state = parameters
+
+        self.model.reinitialize(*self._last_initial_state)
+
+    def reset_to_random(self):
+        """Sample a random initial state"""
+        parameters = next(self._param_generator)
+        self.reset_to(parameters)
+
+    def reset(self):
+        """Restore the world's state to the last initialization"""
+        self.reset_to(self._last_initial_state)

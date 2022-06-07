@@ -26,10 +26,10 @@ agent_position = 0
 agent_velocity = np.linspace(-12, 12, 25)
 pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity)
 
-physical_model = model_cruisecontrol.Model(pg.sample(sigma=0.05))
+simulator = misc.Simulator(model_cruisecontrol.Model, pg.sample(sigma=0.05))
 
-attacker = architecture.Attacker(physical_model, 1, 10, 5, n_coeff=1)
-defender = architecture.Defender(physical_model, 2, 10)
+attacker = architecture.Attacker(simulator, 1, 10, 5, n_coeff=1)
+defender = architecture.Defender(simulator, 2, 10)
 
 misc.load_models(attacker, defender, args.dirname)
 
@@ -38,10 +38,10 @@ steps = 300
 
 
 def run(mode=None):
-    physical_model.initialize_random()
+    simulator.reset_to_random()
     conf_init = {
-        "ag_pos": physical_model.agent.position,
-        "ag_vel": physical_model.agent.velocity,
+        "ag_pos": simulator.model.agent.position,
+        "ag_vel": simulator.model.agent.velocity,
     }
 
     sim_t = []
@@ -63,10 +63,10 @@ def run(mode=None):
         atk_policy = attacker(z)
 
     if mode is not None:
-        physical_model.environment._fn = rbf
+        simulator.model.environment._fn = rbf
 
     for i in range(steps):
-        oa = torch.tensor(physical_model.agent.status)
+        oa = torch.tensor(simulator.model.agent.status)
 
         with torch.no_grad():
             def_policy = defender(oa)
@@ -74,17 +74,17 @@ def run(mode=None):
         atk_input = atk_policy(0) if mode is None else None
         def_input = def_policy(dt)
 
-        physical_model.step(atk_input, def_input, dt)
+        simulator.step(atk_input, def_input, dt)
 
         sim_ag_acc.append(def_input)
         sim_t.append(t)
-        sim_ag_pos.append(physical_model.agent.position.numpy())
-        sim_ag_vel.append(physical_model.agent.velocity.numpy())
+        sim_ag_pos.append(simulator.model.agent.position.numpy())
+        sim_ag_vel.append(simulator.model.agent.velocity.numpy())
 
         t += dt
 
-    x = np.arange(0, 100, physical_model.environment._dx)
-    y = physical_model.environment.get_fn(torch.tensor(x))
+    x = np.arange(0, 100, simulator.model.environment._dx)
+    y = simulator.model.environment.get_fn(torch.tensor(x))
 
     return {
         "init": conf_init,

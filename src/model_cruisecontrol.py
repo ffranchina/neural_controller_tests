@@ -140,14 +140,14 @@ class Model:
     It includes both the attacker and the defender.
     """
 
-    def __init__(self, param_generator):
+    def __init__(self):
         self.agent = Agent()
         self.environment = Environment()
 
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
 
-        self._param_generator = param_generator
+        self.traces = None
 
     def step(self, env_input, agent_input, dt):
         """Updates the physical world with the evolution of
@@ -158,22 +158,21 @@ class Model:
 
         self.traces["velo"].append(self.agent.velocity)
 
-    def initialize_random(self):
-        """Sample a random initial state"""
-        agent_position, agent_velocity = next(self._param_generator)
+    @property
+    def state(self):
+        return (self.agent.position, self.agent.velocity)
 
-        self._last_init = (agent_position, agent_velocity)
+    @state.setter
+    def state(self, values):
+        """Sets the world's state as specified"""
+        agent_position, agent_velocity = values
 
-        self.reinitialize(agent_position, agent_velocity)
-
-    def initialize_rewind(self):
-        """Restore the world's state to the last initialization"""
-        self.reinitialize(*self._last_init)
+        self.agent.position = torch.tensor(agent_position).reshape(1)
+        self.agent.velocity = torch.tensor(agent_velocity).reshape(1)
 
     def reinitialize(self, agent_position, agent_velocity):
         """Sets the world's state as specified"""
-        self.agent.position = torch.tensor(agent_position).reshape(1)
-        self.agent.velocity = torch.tensor(agent_velocity).reshape(1)
+        self.state = (agent_position, agent_velocity)
 
         self.traces = {"velo": []}
 
