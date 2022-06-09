@@ -35,23 +35,23 @@ with open(os.path.join(args.dirname, "sims.pkl"), "rb") as f:
 def hist(time, pulse, step_up, step_down, atk, filename):
     fig, ax = plt.subplots(1, 4, figsize=(12, 3), sharex=True)
 
-    ax[0].plot(time, step_up * 100)
-    ax[0].fill_between(time, step_up * 100, alpha=0.5)
+    ax[0].plot(time, step_up[:, 0] * 100)
+    ax[0].fill_between(time, step_up[:, 0] * 100, alpha=0.5)
     ax[0].set(xlabel="time (s)", ylabel="% correct")
     ax[0].title.set_text("Sudden acceleration")
 
     ax[1].plot(time, step_down * 100)
-    ax[1].fill_between(time, step_down * 100, alpha=0.5)
+    ax[1].fill_between(time, step_down[:, 0] * 100, alpha=0.5)
     ax[1].set(xlabel="time (s)", ylabel="% correct")
     ax[1].title.set_text("Sudden brake")
 
     ax[2].plot(time, pulse * 100)
-    ax[2].fill_between(time, pulse * 100, alpha=0.5)
+    ax[2].fill_between(time, pulse[:, 0] * 100, alpha=0.5)
     ax[2].set(xlabel="time (s)", ylabel="% correct")
     ax[2].title.set_text("Acceleration pulse")
 
     ax[3].plot(time, atk * 100)
-    ax[3].fill_between(time, atk * 100, alpha=0.5)
+    ax[3].fill_between(time, atk[:, 0] * 100, alpha=0.5)
     ax[3].set(xlabel="time (s)", ylabel="% correct")
     ax[3].title.set_text("Against attacker")
 

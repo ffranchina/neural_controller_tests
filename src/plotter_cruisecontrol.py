@@ -29,17 +29,17 @@ def hist(time, up, down, atk, filename):
     fig, ax = plt.subplots(1, 3, figsize=(10, 3), sharex=True)
 
     ax[0].plot(time, up * 100)
-    ax[0].fill_between(time, up * 100, alpha=0.5)
+    ax[0].fill_between(time, up[:, 0] * 100, alpha=0.5)
     ax[0].set(xlabel="time (s)", ylabel="% correct")
     ax[0].title.set_text("Hill")
 
     ax[1].plot(time, down * 100)
-    ax[1].fill_between(time, down * 100, alpha=0.5)
+    ax[1].fill_between(time, down[:, 0] * 100, alpha=0.5)
     ax[1].set(xlabel="time (s)", ylabel="% correct")
     ax[1].title.set_text("Valley")
 
     ax[2].plot(time, atk * 100)
-    ax[2].fill_between(time, atk * 100, alpha=0.5)
+    ax[2].fill_between(time, atk[:, 0] * 100, alpha=0.5)
     ax[2].set(xlabel="time (s)", ylabel="% correct")
     ax[2].title.set_text("Attacker (RBF)")
 
