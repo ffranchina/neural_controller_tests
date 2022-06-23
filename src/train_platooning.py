@@ -24,7 +24,7 @@ simulator = misc.Simulator(model_platooning.Model, pg.sample(sigma=0.05))
 
 # Specifies the STL formula to compute the robustness
 robustness_formula = "G(dist <= 10 & dist >= 2)"
-robustness_computer = model_platooning.RobustnessComputer(robustness_formula)
+robustness_computer = misc.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures
 attacker = architecture.Attacker(simulator, 2, 10, 2)

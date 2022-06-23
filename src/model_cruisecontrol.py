@@ -4,8 +4,6 @@ import numpy as np
 ROAD_LENGTH = 50
 BUMPS = 3
 
-from diffquantitative import DiffQuantitativeSemantic
-
 
 class Car:
     """Describes the physical behaviour of the vehicle"""
@@ -147,16 +145,12 @@ class Model:
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
 
-        self.traces = None
-
     def step(self, env_input, agent_input, dt):
         """Updates the physical world with the evolution of
         a single instant of time.
         """
         self.environment.update(env_input, dt)
         self.agent.update(agent_input, dt)
-
-        self.traces["velo"].append(self.agent.velocity)
 
     @property
     def state(self):
@@ -170,21 +164,10 @@ class Model:
         self.agent.position = torch.tensor(agent_position).reshape(1)
         self.agent.velocity = torch.tensor(agent_velocity).reshape(1)
 
+    @property
+    def observables(self):
+        return {"v": self.agent.velocity}
+
     def reinitialize(self, agent_position, agent_velocity):
         """Sets the world's state as specified"""
         self.state = (agent_position, agent_velocity)
-
-        self.traces = {"velo": []}
-
-
-class RobustnessComputer:
-    """Used to compute the robustness value (rho)"""
-
-    def __init__(self, formula):
-        self.dqs = DiffQuantitativeSemantic(formula)
-
-    def compute(self, model):
-        """Computes rho for the given trace"""
-        v = model.traces["velo"]
-
-        return self.dqs.compute(v=torch.cat(v))

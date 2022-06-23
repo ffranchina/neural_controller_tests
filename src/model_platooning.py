@@ -1,7 +1,5 @@
 import torch
 
-from diffquantitative import DiffQuantitativeSemantic
-
 
 class Car:
     """Describes the physical behaviour of the vehicle"""
@@ -130,16 +128,12 @@ class Model:
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
 
-        self.traces = None
-
     def step(self, env_input, agent_input, dt):
         """Updates the physical world with the evolution of
         a single instant of time.
         """
         self.environment.update(env_input, dt)
         self.agent.update(agent_input, dt)
-
-        self.traces["dist"].append(self.agent.distance)
 
     @property
     def state(self):
@@ -160,23 +154,12 @@ class Model:
         self.environment.l_position = torch.tensor(leader_position).reshape(1)
         self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1)
 
+    @property
+    def observables(self):
+        return {"dist": self.agent.distance}
+
     def reinitialize(
         self, agent_position, agent_velocity, leader_position, leader_velocity
     ):
         """Sets the world's state as specified"""
         self.state = (agent_position, agent_velocity, leader_position, leader_velocity)
-
-        self.traces = {"dist": []}
-
-
-class RobustnessComputer:
-    """Used to compute the robustness value (rho)"""
-
-    def __init__(self, formula):
-        self.dqs = DiffQuantitativeSemantic(formula)
-
-    def compute(self, model):
-        """Computes rho for the given trace"""
-        d = model.traces["dist"]
-
-        return self.dqs.compute(dist=torch.cat(d))

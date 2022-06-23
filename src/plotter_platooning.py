@@ -2,8 +2,9 @@ import os
 import random
 import pickle
 
-import model_platooning
 import torch
+
+import misc
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -115,7 +116,7 @@ if args.scatter:
     size = len(records)
 
     robustness_formula = "G(dist <= 10 & dist >= 2)"
-    robustness_computer = model_platooning.RobustnessComputer(robustness_formula)
+    robustness_computer = misc.RobustnessComputer(robustness_formula)
 
     robustness_array = np.zeros(size)
     delta_pos_array = np.zeros(size)

@@ -143,7 +143,7 @@ class Trainer:
 
             t += dt
 
-        rho = self.robustness_computer.compute(self.simulator.model)
+        rho = self.robustness_computer.compute(self.simulator)
 
         self.attacker_optimizer.zero_grad()
 
@@ -175,7 +175,7 @@ class Trainer:
 
             t += dt
 
-        rho = self.robustness_computer.compute(self.simulator.model)
+        rho = self.robustness_computer.compute(self.simulator)
 
         self.defender_optimizer.zero_grad()
 
@@ -311,7 +311,7 @@ class Tester:
 
             self.simulator.step(atk_input, def_input, dt)
 
-        rho = self.robustness_computer.compute(self.simulator.model)
+        rho = self.robustness_computer.compute(self.simulator)
 
         return rho
 
