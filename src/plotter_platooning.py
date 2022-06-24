@@ -1,6 +1,6 @@
 import os
 import random
-import pickle
+import json
 
 import torch
 
@@ -29,8 +29,24 @@ args = parser.parse_args()
 if args.dark:
     plt.style.use("./qb-common_dark.mplstyle")
 
-with open(os.path.join(args.dirname, "sims.pkl"), "rb") as f:
-    records = pickle.load(f)
+with open(os.path.join(args.dirname, "sims.json"), "r") as f:
+    records = json.load(f)
+
+for r in records:
+    for mode in ["pulse", "step_up", "step_down", "atk"]:
+
+        for var in ["ag_pos", "ag_vel", "env_pos", "env_vel"]:
+            r[mode]["init"][var] = np.array(r[mode]["init"][var])
+
+        for var in [
+            "sim_t",
+            "sim_ag_pos",
+            "sim_ag_dist",
+            "sim_ag_acc",
+            "sim_env_pos",
+            "sim_env_acc",
+        ]:
+            r[mode][var] = np.array(r[mode][var])
 
 
 def hist(time, pulse, step_up, step_down, atk, filename):

@@ -1,6 +1,6 @@
 import os
 import random
-import pickle
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,8 +21,20 @@ args = parser.parse_args()
 if args.dark:
     plt.style.use("./qb-common_dark.mplstyle")
 
-with open(os.path.join(args.dirname, "sims.pkl"), "rb") as f:
-    records = pickle.load(f)
+with open(os.path.join(args.dirname, "sims.json"), "r") as f:
+    records = json.load(f)
+
+for r in records:
+    for mode in ["up", "down", "atk"]:
+
+        for var in ["ag_pos", "ag_vel"]:
+            r[mode]["init"][var] = np.array(r[mode]["init"][var])
+
+        for var in ["x", "y"]:
+            r[mode]["space"][var] = np.array(r[mode]["space"][var])
+
+        for var in ["sim_t", "sim_ag_pos", "sim_ag_vel", "sim_ag_acc"]:
+            r[mode][var] = np.array(r[mode][var])
 
 
 def hist(time, up, down, atk, filename):

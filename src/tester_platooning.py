@@ -1,5 +1,5 @@
 import os
-import pickle
+import json
 
 import model_platooning
 import misc
@@ -44,10 +44,10 @@ steps = 300
 def run(mode=None):
     simulator.reset_to_random()
     conf_init = {
-        "ag_pos": simulator.model.agent.position,
-        "ag_vel": simulator.model.agent.velocity,
-        "env_pos": simulator.model.environment.l_position,
-        "env_vel": simulator.model.environment.l_velocity,
+        "ag_pos": simulator.model.agent.position.numpy().tolist(),
+        "ag_vel": simulator.model.agent.velocity.numpy().tolist(),
+        "env_pos": simulator.model.environment.l_position.numpy().tolist(),
+        "env_vel": simulator.model.environment.l_velocity.numpy().tolist(),
     }
 
     sim_t = []
@@ -86,8 +86,8 @@ def run(mode=None):
 
         simulator.step(atk_input, def_input, dt)
 
-        sim_ag_acc.append(def_input)
-        sim_env_acc.append(atk_input)
+        sim_ag_acc.append(def_input.numpy())
+        sim_env_acc.append(atk_input.numpy())
         sim_t.append(t)
         sim_ag_pos.append(simulator.model.agent.position.numpy())
         sim_env_pos.append(simulator.model.environment.l_position.numpy())
@@ -97,12 +97,12 @@ def run(mode=None):
 
     return {
         "init": conf_init,
-        "sim_t": np.array(sim_t),
-        "sim_ag_pos": np.array(sim_ag_pos),
-        "sim_ag_dist": np.array(sim_ag_dist),
-        "sim_ag_acc": np.array(sim_ag_acc),
-        "sim_env_pos": np.array(sim_env_pos),
-        "sim_env_acc": np.array(sim_env_acc),
+        "sim_t": np.array(sim_t).tolist(),
+        "sim_ag_pos": np.array(sim_ag_pos).tolist(),
+        "sim_ag_dist": np.array(sim_ag_dist).tolist(),
+        "sim_ag_acc": np.array(sim_ag_acc).tolist(),
+        "sim_env_pos": np.array(sim_env_pos).tolist(),
+        "sim_env_acc": np.array(sim_env_acc).tolist(),
     }
 
 
@@ -116,5 +116,5 @@ for i in range(args.repetitions):
 
     records.append(sim)
 
-with open(os.path.join(args.dirname, "sims.pkl"), "wb") as f:
-    pickle.dump(records, f)
+with open(os.path.join(args.dirname, "sims.json"), "w") as f:
+    json.dump(records, f)

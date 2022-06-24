@@ -1,5 +1,5 @@
 import os
-import pickle
+import json
 
 import model_cruisecontrol
 import misc
@@ -40,8 +40,8 @@ steps = 300
 def run(mode=None):
     simulator.reset_to_random()
     conf_init = {
-        "ag_pos": simulator.model.agent.position,
-        "ag_vel": simulator.model.agent.velocity,
+        "ag_pos": simulator.model.agent.position.numpy().tolist(),
+        "ag_vel": simulator.model.agent.velocity.numpy().tolist(),
     }
 
     sim_t = []
@@ -76,7 +76,7 @@ def run(mode=None):
 
         simulator.step(atk_input, def_input, dt)
 
-        sim_ag_acc.append(def_input)
+        sim_ag_acc.append(def_input.numpy())
         sim_t.append(t)
         sim_ag_pos.append(simulator.model.agent.position.numpy())
         sim_ag_vel.append(simulator.model.agent.velocity.numpy())
@@ -88,11 +88,11 @@ def run(mode=None):
 
     return {
         "init": conf_init,
-        "space": {"x": x, "y": y},
-        "sim_t": np.array(sim_t),
-        "sim_ag_pos": np.array(sim_ag_pos),
-        "sim_ag_vel": np.array(sim_ag_vel),
-        "sim_ag_acc": np.array(sim_ag_acc),
+        "space": {"x": x.tolist(), "y": y.tolist()},
+        "sim_t": np.array(sim_t).tolist(),
+        "sim_ag_pos": np.array(sim_ag_pos).tolist(),
+        "sim_ag_vel": np.array(sim_ag_vel).tolist(),
+        "sim_ag_acc": np.array(sim_ag_acc).tolist(),
     }
 
 
@@ -105,5 +105,5 @@ for i in range(args.repetitions):
 
     records.append(sim)
 
-with open(os.path.join(args.dirname, "sims.pkl"), "wb") as f:
-    pickle.dump(records, f)
+with open(os.path.join(args.dirname, "sims.json"), "w") as f:
+    json.dump(records, f)
