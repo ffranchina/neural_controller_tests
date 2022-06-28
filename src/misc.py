@@ -39,7 +39,7 @@ class ParametersHyperparallelepiped:
             yield [
                 self._rng.choice(r) + self._rng.normal(mu, sigma)
                 if isinstance(r, np.ndarray)
-                else float(r)
+                else np.array(r, dtype=np.float64)
                 for r in self._ranges
             ]
 
