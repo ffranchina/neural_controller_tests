@@ -33,42 +33,25 @@ with open(os.path.join(args.dirname, "sims.json"), "r") as f:
     records = json.load(f)
 
 for r in records:
-    for mode in ["pulse", "step_up", "step_down", "atk"]:
+    for var in ["ag_pos", "ag_vel", "env_pos", "env_vel"]:
+        r["atk"]["init"][var] = np.array(r["atk"]["init"][var])
 
-        for var in ["ag_pos", "ag_vel", "env_pos", "env_vel"]:
-            r[mode]["init"][var] = np.array(r[mode]["init"][var])
-
-        for var in [
-            "sim_t",
-            "sim_ag_pos",
-            "sim_ag_dist",
-            "sim_ag_acc",
-            "sim_env_pos",
-            "sim_env_acc",
-        ]:
-            r[mode][var] = np.array(r[mode][var])
+    for var in [
+        "sim_t",
+        "sim_ag_pos",
+        "sim_ag_dist",
+        "sim_ag_acc",
+        "sim_env_pos",
+        "sim_env_acc",
+    ]:
+        r["atk"][var] = np.array(r["atk"][var])
 
 
 def hist(time, pulse, step_up, step_down, atk, filename):
     fig, ax = plt.subplots(1, 4, figsize=(12, 3), sharex=True)
 
-    ax[0].plot(time, step_up[:, 0] * 100)
-    ax[0].fill_between(time, step_up[:, 0] * 100, alpha=0.5)
-    ax[0].set(xlabel="time (s)", ylabel="% correct")
-    ax[0].title.set_text("Sudden acceleration")
-
-    ax[1].plot(time, step_down * 100)
-    ax[1].fill_between(time, step_down[:, 0] * 100, alpha=0.5)
-    ax[1].set(xlabel="time (s)", ylabel="% correct")
-    ax[1].title.set_text("Sudden brake")
-
-    ax[2].plot(time, pulse * 100)
-    ax[2].fill_between(time, pulse[:, 0] * 100, alpha=0.5)
-    ax[2].set(xlabel="time (s)", ylabel="% correct")
-    ax[2].title.set_text("Acceleration pulse")
-
     ax[3].plot(time, atk * 100)
-    ax[3].fill_between(time, atk[:, 0] * 100, alpha=0.5)
+    ax[3].fill_between(time, atk * 100, alpha=0.5)
     ax[3].set(xlabel="time (s)", ylabel="% correct")
     ax[3].title.set_text("Against attacker")
 
@@ -109,11 +92,6 @@ def plot(
 ):
     fig, ax = plt.subplots(1, 3, figsize=(12, 3))
 
-    ax[0].plot(sim_time, sim_agent_pos, label="follower")
-    ax[0].plot(sim_time, sim_env_pos, label="leader")
-    ax[0].set(xlabel="time (s)", ylabel="position (m)")
-    ax[0].legend()
-
     ax[1].plot(sim_time, sim_agent_dist)
     ax[1].set(xlabel="time (s)", ylabel="distance (m)")
     ax[1].axhline(2, ls="--", color="r")
@@ -149,78 +127,38 @@ if args.scatter:
         )
 
         robustness_array[i] = robustness
-        delta_pos_array[i] = delta_pos
-        delta_vel_array[i] = delta_vel
+        delta_pos_array[i] = np.linalg.norm(delta_pos, axis=0)
+        delta_vel_array[i] = np.linalg.norm(delta_vel, axis=0)
 
     scatter(robustness_array, delta_pos_array, delta_vel_array, "atk_scatterplot.png")
 
 if args.triplots:
     n = random.randrange(len(records))
-    print("pulse:", records[n]["pulse"]["init"])
-    plot(
-        records[n]["pulse"]["sim_t"],
-        records[n]["pulse"]["sim_ag_pos"],
-        records[n]["pulse"]["sim_ag_dist"],
-        records[n]["pulse"]["sim_ag_acc"],
-        records[n]["pulse"]["sim_env_pos"],
-        records[n]["pulse"]["sim_env_acc"],
-        "triplot_pulse.png",
-    )
-
-    print("step_up:", records[n]["step_up"]["init"])
-    plot(
-        records[n]["step_up"]["sim_t"],
-        records[n]["step_up"]["sim_ag_pos"],
-        records[n]["step_up"]["sim_ag_dist"],
-        records[n]["step_up"]["sim_ag_acc"],
-        records[n]["step_up"]["sim_env_pos"],
-        records[n]["step_up"]["sim_env_acc"],
-        "triplot_step_up.png",
-    )
-
-    print("step_down:", records[n]["step_down"]["init"])
-    plot(
-        records[n]["step_down"]["sim_t"],
-        records[n]["step_down"]["sim_ag_pos"],
-        records[n]["step_down"]["sim_ag_dist"],
-        records[n]["step_down"]["sim_ag_acc"],
-        records[n]["step_down"]["sim_env_pos"],
-        records[n]["step_down"]["sim_env_acc"],
-        "triplot_step_down.png",
-    )
 
     print("attacker:", records[n]["atk"]["init"])
     plot(
         records[n]["atk"]["sim_t"],
         records[n]["atk"]["sim_ag_pos"],
-        records[n]["atk"]["sim_ag_dist"],
-        records[n]["atk"]["sim_ag_acc"],
+        np.linalg.norm(records[n]["atk"]["sim_ag_dist"], axis=1),
+        np.linalg.norm(records[n]["atk"]["sim_ag_acc"], axis=1),
         records[n]["atk"]["sim_env_pos"],
-        records[n]["atk"]["sim_env_acc"],
+        np.linalg.norm(records[n]["atk"]["sim_env_acc"], axis=1),
         "triplot_attacker.png",
     )
 
 if args.hist:
     size = len(records)
-    pulse_pct = np.zeros_like(records[0]["pulse"]["sim_ag_dist"])
-    step_up_pct = np.zeros_like(records[0]["step_up"]["sim_ag_dist"])
-    step_down_pct = np.zeros_like(records[0]["step_down"]["sim_ag_dist"])
-    atk_pct = np.zeros_like(records[0]["atk"]["sim_ag_dist"])
+    atk_pct = np.zeros(records[0]["atk"]["sim_ag_dist"].shape[0])
 
     for i in range(size):
-        t = records[i]["pulse"]["sim_ag_dist"]
-        pulse_pct = pulse_pct + np.logical_and(t > 2, t < 10)
-        t = records[i]["step_up"]["sim_ag_dist"]
-        step_up_pct = step_up_pct + np.logical_and(t > 2, t < 10)
-        t = records[i]["step_down"]["sim_ag_dist"]
-        step_down_pct = step_down_pct + np.logical_and(t > 2, t < 10)
-        t = records[i]["atk"]["sim_ag_dist"]
-        atk_pct = atk_pct + np.logical_and(t > 2, t < 10)
+        d = np.linalg.norm(records[i]["atk"]["sim_ag_dist"], axis=1)
+        atk_pct = atk_pct + np.logical_and(d > 2, d < 10)
 
-    time = records[0]["pulse"]["sim_t"]
-    pulse_pct = pulse_pct / size
-    step_up_pct = step_up_pct / size
-    step_down_pct = step_down_pct / size
+    time = records[0]["atk"]["sim_t"]
+
+    pulse_pct = None
+    step_up_pct = None
+    step_down_pct = None
     atk_pct = atk_pct / size
 
     hist(time, pulse_pct, step_up_pct, step_down_pct, atk_pct, "pct_histogram.png")

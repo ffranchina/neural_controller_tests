@@ -1,5 +1,5 @@
 import os
-import pickle
+import json
 
 import model_platooning
 import misc
@@ -30,10 +30,10 @@ pg = misc.ParametersHyperparallelepiped(
     agent_position, agent_velocity, leader_position, leader_velocity
 )
 
-physical_model = model_platooning.Model(pg.sample(sigma=0.05))
+simulator = misc.Simulator(model_platooning.Model, pg.sample(sigma=0.05))
 
-attacker = architecture.Attacker(physical_model, 2, 10, 2)
-defender = architecture.Defender(physical_model, 2, 10)
+attacker = architecture.Attacker(simulator, 2, 10, 2)
+defender = architecture.Defender(simulator, 2, 10)
 
 misc.load_models(attacker, defender, args.dirname)
 
@@ -42,12 +42,12 @@ steps = 300
 
 
 def run(mode=None):
-    physical_model.initialize_random()
+    simulator.reset_to_random()
     conf_init = {
-        "ag_pos": physical_model.agent.position,
-        "ag_vel": physical_model.agent.velocity,
-        "env_pos": physical_model.environment.l_position,
-        "env_vel": physical_model.environment.l_velocity,
+        "ag_pos": simulator.model.agent.position.numpy().tolist(),
+        "ag_vel": simulator.model.agent.velocity.numpy().tolist(),
+        "env_pos": simulator.model.environment.l_position.numpy().tolist(),
+        "env_vel": simulator.model.environment.l_velocity.numpy().tolist(),
     }
 
     sim_t = []
@@ -60,8 +60,8 @@ def run(mode=None):
     t = 0
     for i in range(steps):
         with torch.no_grad():
-            oa = torch.tensor(physical_model.agent.status)
-            oe = torch.tensor(physical_model.environment.status)
+            oa = torch.tensor(simulator.model.agent.status)
+            oe = torch.tensor(simulator.model.environment.status)
             z = torch.rand(attacker.noise_size)
             if mode == 0:
                 atk_policy = (
@@ -84,25 +84,25 @@ def run(mode=None):
         atk_input = atk_policy(dt)
         def_input = def_policy(dt)
 
-        physical_model.step(atk_input, def_input, dt)
+        simulator.step(atk_input, def_input, dt)
 
-        sim_ag_acc.append(def_input)
-        sim_env_acc.append(atk_input)
+        sim_ag_acc.append(def_input.numpy())
+        sim_env_acc.append(atk_input.numpy())
         sim_t.append(t)
-        sim_ag_pos.append(physical_model.agent.position.numpy())
-        sim_env_pos.append(physical_model.environment.l_position.numpy())
-        sim_ag_dist.append(physical_model.agent.distance.numpy())
+        sim_ag_pos.append(simulator.model.agent.position.numpy())
+        sim_env_pos.append(simulator.model.environment.l_position.numpy())
+        sim_ag_dist.append(simulator.model.agent.distance.numpy())
 
         t += dt
 
     return {
         "init": conf_init,
-        "sim_t": np.array(sim_t),
-        "sim_ag_pos": np.array(sim_ag_pos),
-        "sim_ag_dist": np.array(sim_ag_dist),
-        "sim_ag_acc": np.array(sim_ag_acc),
-        "sim_env_pos": np.array(sim_env_pos),
-        "sim_env_acc": np.array(sim_env_acc),
+        "sim_t": np.array(sim_t).tolist(),
+        "sim_ag_pos": np.array(sim_ag_pos).tolist(),
+        "sim_ag_dist": np.array(sim_ag_dist).tolist(),
+        "sim_ag_acc": np.array(sim_ag_acc).tolist(),
+        "sim_env_pos": np.array(sim_env_pos).tolist(),
+        "sim_env_acc": np.array(sim_env_acc).tolist(),
     }
 
 
@@ -116,5 +116,5 @@ for i in range(args.repetitions):
 
     records.append(sim)
 
-with open(os.path.join(args.dirname, "sims.pkl"), "wb") as f:
-    pickle.dump(records, f)
+with open(os.path.join(args.dirname, "sims.json"), "w") as f:
+    json.dump(records, f)

@@ -1,6 +1,6 @@
 import os
 import random
-import pickle
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,25 +21,37 @@ args = parser.parse_args()
 if args.dark:
     plt.style.use("./qb-common_dark.mplstyle")
 
-with open(os.path.join(args.dirname, "sims.pkl"), "rb") as f:
-    records = pickle.load(f)
+with open(os.path.join(args.dirname, "sims.json"), "r") as f:
+    records = json.load(f)
+
+for r in records:
+    for mode in ["up", "down", "atk"]:
+
+        for var in ["ag_pos", "ag_vel"]:
+            r[mode]["init"][var] = np.array(r[mode]["init"][var])
+
+        for var in ["x", "y"]:
+            r[mode]["space"][var] = np.array(r[mode]["space"][var])
+
+        for var in ["sim_t", "sim_ag_pos", "sim_ag_vel", "sim_ag_acc"]:
+            r[mode][var] = np.array(r[mode][var])
 
 
 def hist(time, up, down, atk, filename):
     fig, ax = plt.subplots(1, 3, figsize=(10, 3), sharex=True)
 
     ax[0].plot(time, up * 100)
-    ax[0].fill_between(time, up * 100, alpha=0.5)
+    ax[0].fill_between(time, up[:, 0] * 100, alpha=0.5)
     ax[0].set(xlabel="time (s)", ylabel="% correct")
     ax[0].title.set_text("Hill")
 
     ax[1].plot(time, down * 100)
-    ax[1].fill_between(time, down * 100, alpha=0.5)
+    ax[1].fill_between(time, down[:, 0] * 100, alpha=0.5)
     ax[1].set(xlabel="time (s)", ylabel="% correct")
     ax[1].title.set_text("Valley")
 
     ax[2].plot(time, atk * 100)
-    ax[2].fill_between(time, atk * 100, alpha=0.5)
+    ax[2].fill_between(time, atk[:, 0] * 100, alpha=0.5)
     ax[2].set(xlabel="time (s)", ylabel="% correct")
     ax[2].title.set_text("Attacker (RBF)")
 

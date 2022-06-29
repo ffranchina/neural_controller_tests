@@ -11,7 +11,7 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 class Attacker(nn.Module):
     """NN architecture for the attacker"""
 
-    def __init__(self, model, n_hidden_layers, layer_size, noise_size, n_coeff=3):
+    def __init__(self, simulator, n_hidden_layers, layer_size, noise_size, n_coeff=3):
         super().__init__()
 
         assert n_hidden_layers > 0
@@ -19,8 +19,8 @@ class Attacker(nn.Module):
         self.noise_size = noise_size
         self.n_coeff = n_coeff
 
-        input_layer_size = model.environment.sensors + noise_size
-        output_layer_size = model.environment.actuators * n_coeff
+        input_layer_size = simulator.model.environment.sensors + noise_size
+        output_layer_size = simulator.model.environment.actuators * n_coeff
 
         layers = []
         layers.append(nn.Linear(input_layer_size, layer_size))
@@ -52,15 +52,15 @@ class Attacker(nn.Module):
 class Defender(nn.Module):
     """NN architecture for the defender"""
 
-    def __init__(self, model, n_hidden_layers, layer_size, n_coeff=3):
+    def __init__(self, simulator, n_hidden_layers, layer_size, n_coeff=3):
         super().__init__()
 
         assert n_hidden_layers > 0
 
         self.n_coeff = n_coeff
 
-        input_layer_size = model.agent.sensors
-        output_layer_size = model.agent.actuators * n_coeff
+        input_layer_size = simulator.model.agent.sensors
+        output_layer_size = simulator.model.agent.actuators * n_coeff
 
         layers = []
         layers.append(nn.Linear(input_layer_size, layer_size))
@@ -94,14 +94,14 @@ class Trainer:
 
     def __init__(
         self,
-        world_model,
+        simulator,
         robustness_computer,
         attacker_nn,
         defender_nn,
         logging_dir=None,
     ):
 
-        self.model = world_model
+        self.simulator = simulator
         self.robustness_computer = robustness_computer
 
         self.attacker = attacker_nn
@@ -123,8 +123,8 @@ class Trainer:
     def train_attacker_step(self, time_horizon, dt, atk_static):
         """Training step for the attacker. The defender's passive."""
         z = torch.rand(self.attacker.noise_size)
-        oa = torch.tensor(self.model.agent.status)
-        oe = torch.tensor(self.model.environment.status)
+        oa = torch.tensor(self.simulator.model.agent.status)
+        oe = torch.tensor(self.simulator.model.environment.status)
 
         atk_policy = self.attacker(torch.cat((z, oe)))
 
@@ -139,11 +139,11 @@ class Trainer:
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
 
-            self.model.step(atk_input, def_input, dt)
+            self.simulator.step(atk_input, def_input, dt)
 
             t += dt
 
-        rho = self.robustness_computer.compute(self.model)
+        rho = self.robustness_computer.compute(self.simulator)
 
         self.attacker_optimizer.zero_grad()
 
@@ -157,8 +157,8 @@ class Trainer:
     def train_defender_step(self, time_horizon, dt, atk_static):
         """Training step for the defender. The attacker's passive."""
         z = torch.rand(self.attacker.noise_size)
-        oa = torch.tensor(self.model.agent.status)
-        oe = torch.tensor(self.model.environment.status)
+        oa = torch.tensor(self.simulator.model.agent.status)
+        oe = torch.tensor(self.simulator.model.environment.status)
 
         with torch.no_grad():
             atk_policy = self.attacker(torch.cat((z, oe)))
@@ -171,11 +171,11 @@ class Trainer:
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
 
-            self.model.step(atk_input, def_input, dt)
+            self.simulator.step(atk_input, def_input, dt)
 
             t += dt
 
-        rho = self.robustness_computer.compute(self.model)
+        rho = self.robustness_computer.compute(self.simulator)
 
         self.defender_optimizer.zero_grad()
 
@@ -192,15 +192,15 @@ class Trainer:
         """
         atk_loss, def_loss = 0, 0
 
-        self.model.initialize_random()  # samples a random initial state
+        self.simulator.reset_to_random()  # samples a random initial state
         for i in range(atk_steps):
             atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
-            self.model.initialize_rewind()  # restores the initial state
+            self.simulator.reset()  # restores the initial state
 
-        self.model.initialize_random()  # samples a random initial state
+        self.simulator.reset_to_random()  # samples a random initial state
         for i in range(def_steps):
             def_loss = self.train_defender_step(time_horizon, dt, atk_static)
-            self.model.initialize_rewind()  # restores the initial state
+            self.simulator.reset()  # restores the initial state
 
         return (atk_loss, def_loss)
 
@@ -275,14 +275,14 @@ class Tester:
 
     def __init__(
         self,
-        world_model,
+        simulator,
         robustness_computer,
         attacker_nn,
         defender_nn,
         logging_dir=None,
     ):
 
-        self.model = world_model
+        self.simulator = simulator
         self.robustness_computer = robustness_computer
 
         self.attacker = attacker_nn
@@ -295,12 +295,12 @@ class Tester:
 
     def test(self, time_horizon, dt):
         """Tests a whole episode"""
-        self.model.initialize_random()
+        self.simulator.reset_to_random()
 
         for t in range(time_horizon):
             z = torch.rand(self.attacker.noise_size)
-            oa = torch.tensor(self.model.agent.status)
-            oe = torch.tensor(self.model.environment.status)
+            oa = torch.tensor(self.simulator.model.agent.status)
+            oe = torch.tensor(self.simulator.model.environment.status)
 
             with torch.no_grad():
                 atk_policy = self.attacker(torch.cat((z, oe)))
@@ -309,9 +309,9 @@ class Tester:
             atk_input = atk_policy(dt)
             def_input = def_policy(dt)
 
-            self.model.step(atk_input, def_input, dt)
+            self.simulator.step(atk_input, def_input, dt)
 
-        rho = self.robustness_computer.compute(self.model)
+        rho = self.robustness_computer.compute(self.simulator)
 
         return rho
 
