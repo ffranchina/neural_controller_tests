@@ -45,8 +45,8 @@ class ParametersHyperparallelepiped:
 
 
 class Simulator:
-    def __init__(self, physical_model_class, param_generator):
-        self.model = physical_model_class()
+    def __init__(self, physical_model_object, param_generator):
+        self.model = physical_model_object
         self._param_generator = param_generator
 
         self._previous_initial_state = None

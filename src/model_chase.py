@@ -1,5 +1,7 @@
 import torch
 
+import misc
+
 
 class Drone:
     """Describes the physical behaviour of the drone"""
@@ -32,16 +34,33 @@ class Drone:
 
 
 class Environment:
-    def __init__(self):
+    actuators = 1 * 2
+    sensors = 3 * 2
+
+    def __init__(self, label, nn, target_formula=None):
+        self._label = label
+        self._nn = nn
+
+        self._robustness_computer = (
+            misc.RobustnessComputer(target_formula) if target_formula else None
+        )
+
         self._leader_drone = Drone()
+
+    @property
+    def label(self):
+        return self._label
+
+    @property
+    def nn(self):
+        return self._nn
+
+    @property
+    def robustness_computer(self):
+        return self._robustness_computer
 
     def set_agent(self, agent):
         self._agent = agent
-        self.initialized()
-
-    def initialized(self):
-        self.actuators = 2  # Components of the acceleration
-        self.sensors = len(self.status)
 
     @property
     def l_position(self):
@@ -75,16 +94,33 @@ class Environment:
 
 
 class Agent:
-    def __init__(self):
+    actuators = 1 * 2
+    sensors = 3 * 2
+
+    def __init__(self, label, nn, target_formula=None):
+        self._label = label
+        self._nn = nn
+
+        self._robustness_computer = (
+            misc.RobustnessComputer(target_formula) if target_formula else None
+        )
+
         self._drone = Drone()
+
+    @property
+    def label(self):
+        return self._label
+
+    @property
+    def nn(self):
+        return self._nn
+
+    @property
+    def robustness_computer(self):
+        return self._robustness_computer
 
     def set_environment(self, environment):
         self._environment = environment
-        self.initialized()
-
-    def initialized(self):
-        self.actuators = 2  # Components of the acceleration
-        self.sensors = len(self.status)
 
     @property
     def position(self):
@@ -126,9 +162,9 @@ class Model:
     It includes both the attacker and the defender.
     """
 
-    def __init__(self):
-        self.agent = Agent()
-        self.environment = Environment()
+    def __init__(self, environment, *agents):
+        self.agent = agents[0]
+        self.environment = environment
 
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)

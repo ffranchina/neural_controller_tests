@@ -36,12 +36,23 @@ pg = misc.ParametersHyperparallelepiped(
     agent_position, agent_velocity, leader_position, leader_velocity
 )
 
-simulator = misc.Simulator(model_chase.Model, pg.sample(sigma=0.05))
+nn_attacker = architecture.NeuralAgent(
+    model_chase.Environment.sensors, model_chase.Environment.actuators, 2, 10, 2
+)
+nn_defender = architecture.NeuralAgent(
+    model_chase.Agent.sensors, model_chase.Agent.actuators, 2, 10
+)
 
-attacker = architecture.Attacker(simulator, 2, 10, 2)
-defender = architecture.Defender(simulator, 2, 10)
+attacker = model_chase.Environment("attacker", nn_attacker)
+defender = model_chase.Agent("defender", nn_defender)
 
-misc.load_models(attacker, defender, args.dirname)
+# Passa al Trainer i TrainingAgent
+world_model = model_chase.Model(attacker, defender)
+
+# Instantiates the world's model
+simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
+
+misc.load_models(nn_attacker, nn_defender, args.dirname)
 
 dt = 0.05
 steps = 300
@@ -68,10 +79,10 @@ def run(mode=None):
         with torch.no_grad():
             oa = torch.tensor(simulator.model.agent.status)
             oe = torch.tensor(simulator.model.environment.status)
-            z = torch.rand(attacker.noise_size)
+            z = torch.rand(nn_attacker.input_noise_size)
 
-            atk_policy = attacker(torch.cat((z, oe)))
-            def_policy = defender(oa)
+            atk_policy = nn_attacker(torch.cat((z, oe)))
+            def_policy = nn_defender(oa)
 
         atk_input = atk_policy(dt)
         def_input = def_policy(dt)

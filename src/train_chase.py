@@ -25,31 +25,38 @@ pg = misc.ParametersHyperparallelepiped(
     agent_position, agent_velocity, leader_position, leader_velocity, seed=seed
 )
 
-# Instantiates the world's model
-simulator = misc.Simulator(model_chase.Model, pg.sample(sigma=0.05))
-
 # Specifies the STL formula to compute the robustness
-robustness_formula = "G(dist <= 10 & dist >= 2)"
-robustness_computer = misc.RobustnessComputer(robustness_formula)
+# attacker_target = "G(!(dist <= 10 & dist >= 2))"
+attacker_target = "!(G(dist <= 10 & dist >= 2))"
+defender_target = "G(dist <= 10 & dist >= 2)"
 
 # Instantiates the NN architectures
-attacker = architecture.Attacker(simulator, 2, 10, 2)
-defender = architecture.Defender(simulator, 2, 10)
+nn_attacker = architecture.NeuralAgent(
+    model_chase.Environment.sensors, model_chase.Environment.actuators, 2, 10, 2
+)
+nn_defender = architecture.NeuralAgent(
+    model_chase.Agent.sensors, model_chase.Agent.actuators, 2, 10
+)
+
+attacker = model_chase.Environment("attacker", nn_attacker, attacker_target)
+defender = model_chase.Agent("defender", nn_defender, defender_target)
+
+# Passa al Trainer i TrainingAgent
+world_model = model_chase.Model(attacker, defender)
+
+# Instantiates the world's model
+simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
 
 working_dir = "/tmp/experiments/" + f"chase_{seed:04}"
 
 # Instantiates the traning and test environments
-trainer = architecture.Trainer(
-    simulator, robustness_computer, attacker, defender, working_dir
-)
-tester = architecture.Tester(
-    simulator, robustness_computer, attacker, defender, working_dir
-)
+trainer = architecture.Trainer(simulator, working_dir)
+tester = architecture.Tester(simulator, working_dir)
 
 dt = 0.05  # timestep
 epochs = 10  # number of train/test iterations
 
-training_steps = 1000  # number of episodes for training
+training_steps = 100  # number of episodes for training
 train_simulation_horizon = int(5 / dt)  # 5 seconds
 
 test_steps = 10  # number of episodes for testing
@@ -70,4 +77,4 @@ for epoch in range(epochs):
     # tester.run(test_steps, test_simulation_horizon, dt, epoch=epoch)
 
 # Saves the trained models
-misc.save_models(attacker, defender, working_dir)
+misc.save_models(nn_attacker, nn_defender, working_dir)

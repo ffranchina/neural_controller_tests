@@ -8,59 +8,27 @@ from tqdm import tqdm
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 
-class Attacker(nn.Module):
-    """NN architecture for the attacker"""
+class NeuralAgent(nn.Module):
+    """NN architecture for a generic agent"""
 
-    def __init__(self, simulator, n_hidden_layers, layer_size, noise_size, n_coeff=3):
+    def __init__(
+        self,
+        n_inputs,
+        n_outputs,
+        n_hidden_layers,
+        layer_size,
+        input_noise_size=0,
+        n_coeff=3,
+    ):
         super().__init__()
 
         assert n_hidden_layers > 0
 
-        self.noise_size = noise_size
+        self.input_noise_size = input_noise_size
         self.n_coeff = n_coeff
 
-        input_layer_size = simulator.model.environment.sensors + noise_size
-        output_layer_size = simulator.model.environment.actuators * n_coeff
-
-        layers = []
-        layers.append(nn.Linear(input_layer_size, layer_size))
-        layers.append(nn.LeakyReLU())
-
-        for i in range(n_hidden_layers - 1):
-            layers.append(nn.Linear(layer_size, layer_size))
-            layers.append(nn.LeakyReLU())
-
-        layers.append(nn.Linear(layer_size, output_layer_size))
-
-        self.nn = nn.Sequential(*layers)
-
-    def forward(self, x):
-        """Uses the NN's output to compute the coefficients of the policy function"""
-        coefficients = self.nn(x)
-        coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
-
-        def policy_generator(t):
-            """The policy function is defined as polynomial"""
-            basis = [t**i for i in range(self.n_coeff)]
-            basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-            basis = torch.reshape(basis, (self.n_coeff, -1))
-            return coefficients.mm(basis).squeeze()
-
-        return policy_generator
-
-
-class Defender(nn.Module):
-    """NN architecture for the defender"""
-
-    def __init__(self, simulator, n_hidden_layers, layer_size, n_coeff=3):
-        super().__init__()
-
-        assert n_hidden_layers > 0
-
-        self.n_coeff = n_coeff
-
-        input_layer_size = simulator.model.agent.sensors
-        output_layer_size = simulator.model.agent.actuators * n_coeff
+        input_layer_size = n_inputs + input_noise_size
+        output_layer_size = n_outputs * n_coeff
 
         layers = []
         layers.append(nn.Linear(input_layer_size, layer_size))
@@ -95,23 +63,18 @@ class Trainer:
     def __init__(
         self,
         simulator,
-        robustness_computer,
-        attacker_nn,
-        defender_nn,
         logging_dir=None,
     ):
 
         self.simulator = simulator
-        self.robustness_computer = robustness_computer
 
-        self.attacker = attacker_nn
-        self.defender = defender_nn
+        self.attacker = self.simulator.model.environment.nn
+        self.defender = self.simulator.model.agent.nn
 
-        self.attacker_loss_fn = lambda x: x
-        self.defender_loss_fn = lambda x: -x
+        self.loss_function = lambda x: -x
 
-        atk_optimizer = optim.Adam(attacker_nn.parameters())
-        def_optimizer = optim.Adam(defender_nn.parameters())
+        atk_optimizer = optim.Adam(self.attacker.parameters())
+        def_optimizer = optim.Adam(self.defender.parameters())
         self.attacker_optimizer = atk_optimizer
         self.defender_optimizer = def_optimizer
 
@@ -122,7 +85,7 @@ class Trainer:
 
     def train_attacker_step(self, time_horizon, dt, atk_static):
         """Training step for the attacker. The defender's passive."""
-        z = torch.rand(self.attacker.noise_size)
+        z = torch.rand(self.attacker.input_noise_size)
         oa = torch.tensor(self.simulator.model.agent.status)
         oe = torch.tensor(self.simulator.model.environment.status)
 
@@ -143,11 +106,13 @@ class Trainer:
 
             t += dt
 
-        rho = self.robustness_computer.compute(self.simulator)
+        rho = self.simulator.model.environment.robustness_computer.compute(
+            self.simulator
+        )
 
         self.attacker_optimizer.zero_grad()
 
-        loss = self.attacker_loss_fn(rho)
+        loss = self.loss_function(rho)
         loss.backward()
 
         self.attacker_optimizer.step()
@@ -156,7 +121,7 @@ class Trainer:
 
     def train_defender_step(self, time_horizon, dt, atk_static):
         """Training step for the defender. The attacker's passive."""
-        z = torch.rand(self.attacker.noise_size)
+        z = torch.rand(self.attacker.input_noise_size)
         oa = torch.tensor(self.simulator.model.agent.status)
         oe = torch.tensor(self.simulator.model.environment.status)
 
@@ -175,11 +140,11 @@ class Trainer:
 
             t += dt
 
-        rho = self.robustness_computer.compute(self.simulator)
+        rho = self.simulator.model.agent.robustness_computer.compute(self.simulator)
 
         self.defender_optimizer.zero_grad()
 
-        loss = self.defender_loss_fn(rho)
+        loss = self.loss_function(rho)
         loss.backward()
 
         self.defender_optimizer.step()
@@ -276,17 +241,13 @@ class Tester:
     def __init__(
         self,
         simulator,
-        robustness_computer,
-        attacker_nn,
-        defender_nn,
         logging_dir=None,
     ):
 
         self.simulator = simulator
-        self.robustness_computer = robustness_computer
 
-        self.attacker = attacker_nn
-        self.defender = defender_nn
+        self.attacker = self.simulator.model.environment.nn
+        self.defender = self.simulator.model.agent.nn
 
         self.logging = True if logging_dir else False
 
@@ -298,7 +259,7 @@ class Tester:
         self.simulator.reset_to_random()
 
         for t in range(time_horizon):
-            z = torch.rand(self.attacker.noise_size)
+            z = torch.rand(self.attacker.input_noise_size)
             oa = torch.tensor(self.simulator.model.agent.status)
             oe = torch.tensor(self.simulator.model.environment.status)
 
@@ -311,7 +272,7 @@ class Tester:
 
             self.simulator.step(atk_input, def_input, dt)
 
-        rho = self.robustness_computer.compute(self.simulator)
+        rho = self.simulator.model.agent.robustness_computer.compute(self.simulator)
 
         return rho
 
