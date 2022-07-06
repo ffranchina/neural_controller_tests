@@ -52,11 +52,11 @@ class Simulator:
         self._previous_initial_state = None
         self.recordings = {}
 
-    def step(self, env_input, agent_input, dt):
+    def step(self, agent_actions, dt):
         """Updates the physical world with the evolution of
         a single instant of time.
         """
-        self.model.step(env_input, agent_input, dt)
+        self.model.step(agent_actions, dt)
         self.record_step()
 
     def record_step(self):

@@ -24,6 +24,8 @@ class NeuralAgent(nn.Module):
 
         assert n_hidden_layers > 0
 
+        self.optimizer = None
+
         self.input_noise_size = input_noise_size
         self.n_coeff = n_coeff
 
@@ -67,169 +69,101 @@ class Trainer:
     ):
 
         self.simulator = simulator
-
-        self.attacker = self.simulator.model.environment.nn
-        self.defender = self.simulator.model.agent.nn
+        self.agents = self.simulator.model.agents
 
         self.loss_function = lambda x: -x
 
-        atk_optimizer = optim.Adam(self.attacker.parameters())
-        def_optimizer = optim.Adam(self.defender.parameters())
-        self.attacker_optimizer = atk_optimizer
-        self.defender_optimizer = def_optimizer
+        for agent in self.agents.values():
+            agent.nn.optimizer = optim.Adam(agent.nn.parameters())
 
         self.logging = True if logging_dir else False
 
         if self.logging:
             self.log = SummaryWriter(logging_dir)
 
-    def train_attacker_step(self, time_horizon, dt, atk_static):
-        """Training step for the attacker. The defender's passive."""
-        z = torch.rand(self.attacker.input_noise_size)
-        oa = torch.tensor(self.simulator.model.agent.status)
-        oe = torch.tensor(self.simulator.model.environment.status)
+    def train_agent(self, training_agent, time_horizon, dt):
+        policies, actions = {}, {}
 
-        atk_policy = self.attacker(torch.cat((z, oe)))
+        for agent in self.agents.values():
+            noise = torch.rand(agent.nn.input_noise_size)
+            sensors = torch.tensor(agent.status)
 
-        with torch.no_grad():
-            def_policy = self.defender(oa)
+            if agent.label == training_agent.label:
+                policies[agent.label] = agent.nn(torch.cat((noise, sensors)))
+            else:
+                with torch.no_grad():
+                    policies[agent.label] = agent.nn(torch.cat((noise, sensors)))
 
         t = 0
         for i in range(time_horizon):
-            # if the attacker is static (e.g. in the case it does not vary over time)
-            # the policy function is always sampled in the same point since the
-            # attacker do not vary policy over time
-            atk_input = atk_policy(0 if atk_static else t)
-            def_input = def_policy(t)
+            actions = {label: policies[label](t) for label in self.agents}
 
-            self.simulator.step(atk_input, def_input, dt)
+            self.simulator.step(actions, dt)
 
             t += dt
 
-        rho = self.simulator.model.environment.robustness_computer.compute(
-            self.simulator
-        )
+        rho = training_agent.robustness_computer.compute(self.simulator)
 
-        self.attacker_optimizer.zero_grad()
+        training_agent.nn.optimizer.zero_grad()
 
         loss = self.loss_function(rho)
         loss.backward()
 
-        self.attacker_optimizer.step()
+        training_agent.nn.optimizer.step()
 
         return float(loss.detach())
 
-    def train_defender_step(self, time_horizon, dt, atk_static):
-        """Training step for the defender. The attacker's passive."""
-        z = torch.rand(self.attacker.input_noise_size)
-        oa = torch.tensor(self.simulator.model.agent.status)
-        oe = torch.tensor(self.simulator.model.environment.status)
+    def train(self, agent_replays, time_horizon, dt):
+        """Trains all the agents in the same initial senario (different for each)"""
+        losses = {}
 
-        with torch.no_grad():
-            atk_policy = self.attacker(torch.cat((z, oe)))
+        for agent in self.agents.values():
+            self.simulator.reset_to_random()  # samples a random initial state
 
-        def_policy = self.defender(oa)
+            for _ in range(agent_replays[agent.label]):
+                losses[agent.label] = self.train_agent(agent, time_horizon, dt)
+                self.simulator.reset()  # restores the initial state
 
-        t = 0
-        for i in range(time_horizon):
-            # if the attacker is static, see the comments above
-            atk_input = atk_policy(0 if atk_static else t)
-            def_input = def_policy(t)
+        return losses
 
-            self.simulator.step(atk_input, def_input, dt)
-
-            t += dt
-
-        rho = self.simulator.model.agent.robustness_computer.compute(self.simulator)
-
-        self.defender_optimizer.zero_grad()
-
-        loss = self.loss_function(rho)
-        loss.backward()
-
-        self.defender_optimizer.step()
-
-        return float(loss.detach())
-
-    def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
-        """Trains both the attacker and the defender on the same
-        initial senario (different for each)
-        """
-        atk_loss, def_loss = 0, 0
-
-        self.simulator.reset_to_random()  # samples a random initial state
-        for i in range(atk_steps):
-            atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
-            self.simulator.reset()  # restores the initial state
-
-        self.simulator.reset_to_random()  # samples a random initial state
-        for i in range(def_steps):
-            def_loss = self.train_defender_step(time_horizon, dt, atk_static)
-            self.simulator.reset()  # restores the initial state
-
-        return (atk_loss, def_loss)
-
-    def run(
-        self,
-        n_steps,
-        time_horizon=100,
-        dt=0.05,
-        *,
-        atk_steps=1,
-        def_steps=1,
-        atk_static=False,
-        epoch=0
-    ):
+    def run(self, n_steps, agent_replays, time_horizon=100, dt=0.05, *, epoch=0):
         """Trains the architecture and provides logging and visual feedback"""
         for i in tqdm(range(n_steps)):
-            atk_loss, def_loss = self.train(
-                atk_steps, def_steps, time_horizon, dt, atk_static
-            )
+            losses = self.train(agent_replays, time_horizon, dt)
 
             if self.logging:
-                atk_params = torch.cat(
-                    [torch.flatten(param.data) for param in self.attacker.parameters()]
-                )
-                atk_params_var, atk_params_mean = torch.var_mean(atk_params)
-                atk_norm = torch.linalg.norm(atk_params)
 
-                def_params = torch.cat(
-                    [torch.flatten(param.data) for param in self.defender.parameters()]
-                )
-                def_params_var, def_params_mean = torch.var_mean(def_params)
-                def_norm = torch.linalg.norm(def_params)
+                for agent in self.agents.values():
+                    self.log.add_scalar(
+                        f"{agent.label}_train/loss",
+                        losses[agent.label],
+                        n_steps * epoch + i,
+                    )
 
-                self.log.add_scalar(
-                    "attacker_train/loss", atk_loss, n_steps * epoch + i
-                )
-                self.log.add_scalar(
-                    "defender_train/loss", def_loss, n_steps * epoch + i
-                )
+                    params = torch.cat(
+                        [torch.flatten(param.data) for param in agent.nn.parameters()]
+                    )
 
-                self.log.add_scalar(
-                    "attacker_train/weights variance",
-                    atk_params_var,
-                    n_steps * epoch + i,
-                )
-                self.log.add_scalar(
-                    "defender_train/weights variance",
-                    def_params_var,
-                    n_steps * epoch + i,
-                )
+                    params_var, params_mean = torch.var_mean(params)
+                    params_norm = torch.linalg.norm(params)
 
-                self.log.add_scalar(
-                    "attacker_train/weights mean", atk_params_mean, n_steps * epoch + i
-                )
-                self.log.add_scalar(
-                    "defender_train/weights mean", def_params_mean, n_steps * epoch + i
-                )
+                    self.log.add_scalar(
+                        f"{agent.label}_train/weights variance",
+                        params_var,
+                        n_steps * epoch + i,
+                    )
 
-                self.log.add_scalar(
-                    "attacker_train/weights norm", atk_norm, n_steps * epoch + i
-                )
-                self.log.add_scalar(
-                    "defender_train/weights norm", def_norm, n_steps * epoch + i
-                )
+                    self.log.add_scalar(
+                        f"{agent.label}_train/weights mean",
+                        params_mean,
+                        n_steps * epoch + i,
+                    )
+
+                    self.log.add_scalar(
+                        f"{agent.label}_train/weights norm",
+                        params_norm,
+                        n_steps * epoch + i,
+                    )
 
         if self.logging:
             self.log.close()
@@ -245,9 +179,7 @@ class Tester:
     ):
 
         self.simulator = simulator
-
-        self.attacker = self.simulator.model.environment.nn
-        self.defender = self.simulator.model.agent.nn
+        self.agents = self.simulator.model.agents
 
         self.logging = True if logging_dir else False
 
@@ -256,40 +188,39 @@ class Tester:
 
     def test(self, time_horizon, dt):
         """Tests a whole episode"""
+        policies, actions = {}, {}
+
         self.simulator.reset_to_random()
 
         for t in range(time_horizon):
-            z = torch.rand(self.attacker.input_noise_size)
-            oa = torch.tensor(self.simulator.model.agent.status)
-            oe = torch.tensor(self.simulator.model.environment.status)
+            for agent in self.agents.values():
+                noise = torch.rand(agent.nn.input_noise_size)
+                sensors = torch.tensor(agent.status)
 
-            with torch.no_grad():
-                atk_policy = self.attacker(torch.cat((z, oe)))
-                def_policy = self.defender(oa)
+                with torch.no_grad():
+                    policies[agent.label] = agent.nn(torch.cat((noise, sensors)))
 
-            atk_input = atk_policy(dt)
-            def_input = def_policy(dt)
+            actions = {label: policies[label](dt) for label in self.agents}
 
-            self.simulator.step(atk_input, def_input, dt)
+            self.simulator.step(actions, dt)
 
-        rho = self.simulator.model.agent.robustness_computer.compute(self.simulator)
+        rhos = {
+            agent.label: agent.robustness_computer.compute(self.simulator)
+            for agent in self.agents.values()
+        }
 
-        return rho
+        return rhos
 
     def run(self, times, time_horizon=1000, dt=0.05, epoch=0):
         """Test the architecture and provides logging"""
         rho_list = torch.zeros(times)
         for i in tqdm(range(times)):
-            def_rho = self.test(time_horizon, dt)
-            rho_list[i] = def_rho
-
-            if self.logging:
-                self.log.add_scalar(
-                    "defender_test/robustness", def_rho, times * epoch + i
-                )
+            rhos = self.test(time_horizon, dt)
+            for label, rho in rhos.items():
+                if self.logging:
+                    self.log.add_scalar(
+                        f"{label}_test/robustness", rho, times * epoch + i
+                    )
 
         if self.logging:
-            self.log.add_scalar(
-                "defender_test/avg robustness", torch.mean(rho_list), epoch
-            )
             self.log.close()

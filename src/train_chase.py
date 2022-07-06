@@ -27,22 +27,22 @@ pg = misc.ParametersHyperparallelepiped(
 
 # Specifies the STL formula to compute the robustness
 # attacker_target = "G(!(dist <= 10 & dist >= 2))"
-attacker_target = "!(G(dist <= 10 & dist >= 2))"
-defender_target = "G(dist <= 10 & dist >= 2)"
+leader_target = "!(G(dist <= 10 & dist >= 2))"
+follower_target = "G(dist <= 10 & dist >= 2)"
 
 # Instantiates the NN architectures
-nn_attacker = architecture.NeuralAgent(
-    model_chase.Environment.sensors, model_chase.Environment.actuators, 2, 10, 2
+nn_leader = architecture.NeuralAgent(
+    model_chase.Agent.sensors, model_chase.Agent.actuators, 2, 10, 2
 )
-nn_defender = architecture.NeuralAgent(
+nn_follower = architecture.NeuralAgent(
     model_chase.Agent.sensors, model_chase.Agent.actuators, 2, 10
 )
 
-attacker = model_chase.Environment("attacker", nn_attacker, attacker_target)
-defender = model_chase.Agent("defender", nn_defender, defender_target)
-
-# Passa al Trainer i TrainingAgent
-world_model = model_chase.Model(attacker, defender)
+# Build the whole setting for the experiment
+env = model_chase.Environment()
+leader = model_chase.Agent("leader", nn_leader, leader_target)
+follower = model_chase.Agent("follower", nn_follower, follower_target)
+world_model = model_chase.Model(env, leader, follower)
 
 # Instantiates the world's model
 simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
@@ -67,14 +67,13 @@ for epoch in range(epochs):
     # Starts the training
     trainer.run(
         training_steps,
+        {"leader": 3, "follower": 10},
         train_simulation_horizon,
         dt,
-        atk_steps=3,
-        def_steps=10,
         epoch=epoch,
     )
     # Starts the testing
     # tester.run(test_steps, test_simulation_horizon, dt, epoch=epoch)
 
 # Saves the trained models
-misc.save_models(nn_attacker, nn_defender, working_dir)
+misc.save_models(nn_leader, nn_follower, working_dir)
