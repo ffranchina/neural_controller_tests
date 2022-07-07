@@ -1,6 +1,7 @@
 import torch
 
 import misc
+import abstract_model
 
 
 class Drone:
@@ -33,10 +34,7 @@ class Drone:
         self.position += self.velocity * dt
 
 
-class Environment:
-    def set_agents(self, agents):
-        self._agents = agents
-
+class Environment(abstract_model.Environment):
     @property
     def leader(self):
         return self._agents["leader"]
@@ -46,34 +44,14 @@ class Environment:
         return self._agents["follower"]
 
 
-class Agent:
-    actuators = 1 * 2
+class Agent(abstract_model.Agent):
     sensors = 3 * 2
+    actuators = 1 * 2
 
     def __init__(self, label, nn, target_formula=None):
-        self._label = label
-        self._nn = nn
-
-        self._robustness_computer = (
-            misc.RobustnessComputer(target_formula) if target_formula else None
-        )
+        super().__init__(label, nn, target_formula)
 
         self._drone = Drone()
-
-    @property
-    def label(self):
-        return self._label
-
-    @property
-    def nn(self):
-        return self._nn
-
-    @property
-    def robustness_computer(self):
-        return self._robustness_computer
-
-    def set_environment(self, environment):
-        self._environment = environment
 
     @property
     def position(self):
@@ -121,25 +99,10 @@ class Agent:
         self._drone.update(acceleration, dt)
 
 
-class Model:
+class Model(abstract_model.Model):
     """The model of the whole world.
     It includes both the attacker and the defender.
     """
-
-    def __init__(self, environment, *agents):
-        self.environment = environment
-        self.agents = {agent.label: agent for agent in agents}
-
-        self.environment.set_agents(self.agents)
-        for agent in self.agents.values():
-            agent.set_environment(self.environment)
-
-    def step(self, agent_actions, dt):
-        """Updates the physical world with the evolution of
-        a single instant of time.
-        """
-        for label, agent in self.agents.items():
-            agent.update(agent_actions[label], dt)
 
     @property
     def state(self):
