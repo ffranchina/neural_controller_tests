@@ -98,14 +98,19 @@ class Agent:
     @property
     def status(self):
         """Representation of the state"""
-        return torch.flatten(
-            torch.cat(
-                (
-                    self._environment.leader.velocity,
-                    self._environment.follower.velocity,
-                    self.distance,
+        return (
+            torch.flatten(
+                torch.cat(
+                    (
+                        self._environment.leader.velocity,
+                        self._environment.follower.velocity,
+                        self.distance,
+                    )
                 )
             )
+            .clone()
+            .detach()
+            .numpy()
         )
 
     def update(self, parameters, dt):
