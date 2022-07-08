@@ -58,10 +58,12 @@ class Agent:
 
 
 class Model(ABC):
-    def __init__(self, environment, *agents):
+    def __init__(self, environment, *agents, dt=0.05):
         assert environment is not None
         assert agents is not None
         assert len(agents) > 0
+
+        self._dt = dt
 
         self.environment = environment
         self.agents = {agent.label: agent for agent in agents}
@@ -70,12 +72,16 @@ class Model(ABC):
         for agent in self.agents.values():
             agent.set_environment(self.environment)
 
-    def step(self, agent_actions, dt):
+    def step(self, agent_actions):
         """Updates the physical world with the evolution of
         a single instant of time.
         """
         for label, agent in self.agents.items():
-            agent.update(agent_actions[label], dt)
+            agent.update(agent_actions[label], self.dt)
+
+    @property
+    def dt(self):
+        return self._dt
 
     @property
     @abstractmethod

@@ -81,7 +81,7 @@ class Trainer:
         if self.logging:
             self.log = SummaryWriter(logging_dir)
 
-    def train_agent(self, training_agent, time_horizon, dt):
+    def train_agent(self, training_agent, time_horizon):
         policies, actions = {}, {}
 
         for agent in self.agents.values():
@@ -98,9 +98,9 @@ class Trainer:
         for i in range(time_horizon):
             actions = {label: policies[label](t) for label in self.agents}
 
-            self.simulator.step(actions, dt)
+            self.simulator.step(actions)
 
-            t += dt
+            t += self.simulator.model.dt
 
         rho = training_agent.robustness_computer.compute(self.simulator)
 
@@ -113,7 +113,7 @@ class Trainer:
 
         return float(loss.detach())
 
-    def train(self, agent_replays, time_horizon, dt):
+    def train(self, agent_replays, time_horizon):
         """Trains all the agents in the same initial senario (different for each)"""
         losses = {}
 
@@ -121,15 +121,15 @@ class Trainer:
             self.simulator.reset_to_random()  # samples a random initial state
 
             for _ in range(agent_replays[agent.label]):
-                losses[agent.label] = self.train_agent(agent, time_horizon, dt)
+                losses[agent.label] = self.train_agent(agent, time_horizon)
                 self.simulator.reset()  # restores the initial state
 
         return losses
 
-    def run(self, n_steps, agent_replays, time_horizon=100, dt=0.05, *, epoch=0):
+    def run(self, n_steps, agent_replays, time_horizon=100, *, epoch=0):
         """Trains the architecture and provides logging and visual feedback"""
         for i in tqdm(range(n_steps)):
-            losses = self.train(agent_replays, time_horizon, dt)
+            losses = self.train(agent_replays, time_horizon)
 
             if self.logging:
 
@@ -186,7 +186,7 @@ class Tester:
         if self.logging:
             self.log = SummaryWriter(logging_dir)
 
-    def test(self, time_horizon, dt):
+    def test(self, time_horizon):
         """Tests a whole episode"""
         policies, actions = {}, {}
 
@@ -200,9 +200,11 @@ class Tester:
                 with torch.no_grad():
                     policies[agent.label] = agent.nn(torch.cat((noise, sensors)))
 
-            actions = {label: policies[label](dt) for label in self.agents}
+            actions = {
+                label: policies[label](self.simulator.model.dt) for label in self.agents
+            }
 
-            self.simulator.step(actions, dt)
+            self.simulator.step(actions)
 
         rhos = {
             agent.label: agent.robustness_computer.compute(self.simulator)
@@ -211,11 +213,11 @@ class Tester:
 
         return rhos
 
-    def run(self, times, time_horizon=1000, dt=0.05, epoch=0):
+    def run(self, times, time_horizon=1000, epoch=0):
         """Test the architecture and provides logging"""
         rho_list = torch.zeros(times)
         for i in tqdm(range(times)):
-            rhos = self.test(time_horizon, dt)
+            rhos = self.test(time_horizon)
             for label, rho in rhos.items():
                 if self.logging:
                     self.log.add_scalar(

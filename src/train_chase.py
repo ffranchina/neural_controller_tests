@@ -38,11 +38,13 @@ nn_follower = architecture.NeuralAgent(
     model_chase.Agent.sensors, model_chase.Agent.actuators, 2, 10
 )
 
+dt = 0.05  # timestep
+
 # Build the whole setting for the experiment
 env = model_chase.Environment()
 leader = model_chase.Agent("leader", nn_leader, leader_target)
 follower = model_chase.Agent("follower", nn_follower, follower_target)
-world_model = model_chase.Model(env, leader, follower)
+world_model = model_chase.Model(env, leader, follower, dt=dt)
 
 # Instantiates the world's model
 simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
@@ -53,7 +55,6 @@ working_dir = "/tmp/experiments/" + f"chase_{seed:04}"
 trainer = architecture.Trainer(simulator, working_dir)
 tester = architecture.Tester(simulator, working_dir)
 
-dt = 0.05  # timestep
 epochs = 10  # number of train/test iterations
 
 training_steps = 100  # number of episodes for training
@@ -69,11 +70,10 @@ for epoch in range(epochs):
         training_steps,
         {"leader": 3, "follower": 10},
         train_simulation_horizon,
-        dt,
         epoch=epoch,
     )
     # Starts the testing
-    # tester.run(test_steps, test_simulation_horizon, dt, epoch=epoch)
+    # tester.run(test_steps, test_simulation_horizon, epoch=epoch)
 
 # Saves the trained models
 misc.save_models(nn_leader, nn_follower, working_dir)
