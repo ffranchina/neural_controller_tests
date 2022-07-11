@@ -70,7 +70,7 @@ class Simulator:
         """Sets the world's state as specified"""
         self._last_initial_state = parameters
 
-        self.model.reinitialize(*self._last_initial_state)
+        self.model.state = parameters
         self.recordings = {}
         self.record_step()
 

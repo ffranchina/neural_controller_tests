@@ -10,8 +10,8 @@ seed = random.randint(0, 10000)
 torch.manual_seed(seed)
 
 # Specifies the initial conditions of the setup
-agent_position = [0.0, 0.0]
-agent_velocity = np.array(
+follower_position = [0.0, 0.0]
+follower_velocity = np.array(
     np.meshgrid(np.linspace(0, 20, 40), np.linspace(0, 20, 40))
 ).T.reshape(-1, 2)
 leader_position = np.array(
@@ -20,10 +20,14 @@ leader_position = np.array(
 leader_velocity = np.array(
     np.meshgrid(np.linspace(0, 20, 40), np.linspace(0, 20, 40))
 ).T.reshape(-1, 2)
+initial_conditions_ranges = [
+    leader_position,
+    leader_velocity,
+    follower_position,
+    follower_velocity,
+]
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(
-    agent_position, agent_velocity, leader_position, leader_velocity, seed=seed
-)
+pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges, seed=seed)
 
 # Specifies the STL formula to compute the robustness
 # attacker_target = "G(!(dist <= 10 & dist >= 2))"

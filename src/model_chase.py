@@ -106,29 +106,23 @@ class Model(abstract_model.Model):
 
     @property
     def state(self):
-        return (
-            self.agents["follower"].position,
-            self.agents["follower"].velocity,
-            self.agents["leader"].position,
-            self.agents["leader"].velocity,
-        )
+        values = []
+
+        for agent in self.agents.values():
+            values.append(agent.position)
+            values.append(agent.velocity)
+
+        return values
 
     @state.setter
     def state(self, values):
         """Sets the world's state as specified"""
-        agent_position, agent_velocity, leader_position, leader_velocity = values
+        values = list(values)
 
-        self.agents["follower"].position = torch.tensor(agent_position).reshape(2)
-        self.agents["follower"].velocity = torch.tensor(agent_velocity).reshape(2)
-        self.agents["leader"].position = torch.tensor(leader_position).reshape(2)
-        self.agents["leader"].velocity = torch.tensor(leader_velocity).reshape(2)
+        for agent in self.agents.values():
+            agent.position = torch.tensor(values.pop(0)).reshape(2)
+            agent.velocity = torch.tensor(values.pop(0)).reshape(2)
 
     @property
     def observables(self):
         return {"dist": torch.linalg.norm(self.agents["follower"].distance).reshape(1)}
-
-    def reinitialize(
-        self, agent_position, agent_velocity, leader_position, leader_velocity
-    ):
-        """Sets the world's state as specified"""
-        self.state = (agent_position, agent_velocity, leader_position, leader_velocity)
