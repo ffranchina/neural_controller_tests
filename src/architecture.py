@@ -200,9 +200,7 @@ class Tester:
                 with torch.no_grad():
                     policies[agent.label] = agent.nn(torch.cat((noise, sensors)))
 
-            actions = {
-                label: policies[label](self.simulator.model.dt) for label in self.agents
-            }
+                actions[agent.label] = policies[agent.label](self.simulator.model.dt)
 
             self.simulator.step(actions)
 
