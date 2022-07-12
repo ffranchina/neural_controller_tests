@@ -56,8 +56,9 @@ class Simulator:
         """Updates the physical world with the evolution of
         a single instant of time.
         """
-        self.model.step(agent_actions)
-        self.record_step()
+        if self._previous_initial_state is not None:
+            self.model.step(agent_actions)
+            self.record_step()
 
     def record_step(self):
         for key, value in self.model.observables.items():
@@ -68,7 +69,7 @@ class Simulator:
 
     def reset_to(self, parameters):
         """Sets the world's state as specified"""
-        self._last_initial_state = parameters
+        self._previous_initial_state = parameters
 
         self.model.state = parameters
         self.recordings = {}
@@ -81,7 +82,7 @@ class Simulator:
 
     def reset(self):
         """Restore the world's state to the last initialization"""
-        self.reset_to(self._last_initial_state)
+        self.reset_to(self._previous_initial_state)
 
 
 class RobustnessComputer:
