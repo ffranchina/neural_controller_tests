@@ -36,7 +36,7 @@ follower_target = "G(dist <= 10 & dist >= 2)"
 
 # Instantiates the NN architectures
 nn_leader = architecture.NeuralAgent(
-    model_chase.Agent.sensors, model_chase.Agent.actuators, 2, 10, 2
+    model_chase.Leader.sensors, model_chase.Leader.actuators, 2, 10, 2
 )
 nn_follower = architecture.NeuralAgent(
     model_chase.Agent.sensors, model_chase.Agent.actuators, 2, 10
@@ -46,7 +46,7 @@ dt = 0.05  # timestep
 
 # Build the whole setting for the experiment
 env = model_chase.Environment()
-leader = model_chase.Agent("leader", nn_leader, leader_target)
+leader = model_chase.Leader("leader", nn_leader, leader_target)
 follower = model_chase.Agent("follower", nn_follower, follower_target)
 world_model = model_chase.Model(env, leader, follower, dt=dt)
 
