@@ -11,7 +11,7 @@ class Environment:
         self._agents = agents
 
 
-class Agent:
+class Agent(ABC):
     sensors = 0
     actuators = 0
 
@@ -67,6 +67,9 @@ class Model(ABC):
 
         self.environment = environment
         self.agents = {agent.label: agent for agent in agents}
+
+        # Makes sure labels are different
+        assert len(agents) == len(self.agents)
 
         self.environment.set_agents(self.agents)
         for agent in self.agents.values():
