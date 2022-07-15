@@ -22,88 +22,93 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-agent_position = 0
-agent_velocity = np.linspace(0, 20, 10)
+# Specifies the initial conditions of the setup
+follower_position = 0
+follower_velocity = np.linspace(0, 20, 40)
 leader_position = np.linspace(1, 12, 15)
-leader_velocity = np.linspace(0, 20, 10)
-pg = misc.ParametersHyperparallelepiped(
-    agent_position, agent_velocity, leader_position, leader_velocity
+leader_velocity = np.linspace(0, 20, 40)
+initial_conditions_ranges = [
+    leader_position,
+    leader_velocity,
+    follower_position,
+    follower_velocity,
+]
+# Initializes the generator of initial states
+pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges)
+
+# Instantiates the NN architectures
+nn_leader = architecture.NeuralAgent(
+    model_platooning.Agent.sensors, model_platooning.Agent.actuators, 2, 10, 2
+)
+nn_follower = architecture.NeuralAgent(
+    model_platooning.Agent.sensors, model_platooning.Agent.actuators, 2, 10
 )
 
-simulator = misc.Simulator(model_platooning.Model, pg.sample(sigma=0.05))
-
-attacker = architecture.Attacker(simulator, 2, 10, 2)
-defender = architecture.Defender(simulator, 2, 10)
-
-misc.load_models(attacker, defender, args.dirname)
-
 dt = 0.05
+
+# Build the whole setting for the experiment
+env = model_platooning.Environment()
+leader = model_platooning.Agent("leader", nn_leader)
+follower = model_platooning.Agent("follower", nn_follower)
+world_model = model_platooning.Model(env, leader, follower, dt=dt)
+
+# Instantiates the world's model
+simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
+
+misc.load_models(nn_leader, nn_follower, args.dirname)
+
 steps = 300
 
 
+@torch.no_grad()
 def run(mode=None):
     simulator.reset_to_random()
-    conf_init = {
-        "ag_pos": simulator.model.agent.position.numpy().tolist(),
-        "ag_vel": simulator.model.agent.velocity.numpy().tolist(),
-        "env_pos": simulator.model.environment.l_position.numpy().tolist(),
-        "env_vel": simulator.model.environment.l_velocity.numpy().tolist(),
-    }
 
-    sim_t = []
-    sim_ag_pos = []
-    sim_ag_dist = []
-    sim_ag_acc = []
-    sim_env_pos = []
-    sim_env_acc = []
+    experimental_data = {}
+    experimental_data["t"] = np.zeros(steps)
+    for agent in simulator.model.agents.values():
+        experimental_data[f"{agent.label}_pos"] = np.zeros(steps)
+        experimental_data[f"{agent.label}_vel"] = np.zeros(steps)
+        experimental_data[f"{agent.label}_acc"] = np.zeros(steps)
 
     t = 0
     for i in range(steps):
-        with torch.no_grad():
-            oa = torch.tensor(simulator.model.agent.status)
-            oe = torch.tensor(simulator.model.environment.status)
-            z = torch.rand(attacker.noise_size)
+        policies, actions = {}, {}
+
+        for agent in simulator.model.agents.values():
+            noise = torch.rand(agent.nn.input_noise_size)
+            sensors = torch.tensor(agent.status)
+
+            policies[agent.label] = agent.nn(torch.cat((noise, sensors)))
+
             if mode == 0:
-                atk_policy = (
+                policies["leader"] = (
                     lambda x: torch.tensor(2.0)
                     if i > 200 and i < 250
                     else torch.tensor(-2.0)
                 )
             elif mode == 1:
-                atk_policy = (
+                policies["leader"] = (
                     lambda x: torch.tensor(2.0) if i > 150 else torch.tensor(-2.0)
                 )
             elif mode == 2:
-                atk_policy = (
+                policies["leader"] = (
                     lambda x: torch.tensor(2.0) if i < 150 else torch.tensor(-2.0)
                 )
-            else:
-                atk_policy = attacker(torch.cat((z, oe)))
-            def_policy = defender(oa)
 
-        atk_input = atk_policy(dt)
-        def_input = def_policy(dt)
+            actions[agent.label] = policies[agent.label](simulator.model.dt)
 
-        simulator.step(atk_input, def_input, dt)
+        experimental_data["t"][i] = t
+        for agent in simulator.model.agents.values():
+            experimental_data[f"{agent.label}_pos"][i] = agent.position.numpy()
+            experimental_data[f"{agent.label}_vel"][i] = agent.velocity.numpy()
+            experimental_data[f"{agent.label}_acc"][i] = actions[agent.label].numpy()
 
-        sim_ag_acc.append(def_input.numpy())
-        sim_env_acc.append(atk_input.numpy())
-        sim_t.append(t)
-        sim_ag_pos.append(simulator.model.agent.position.numpy())
-        sim_env_pos.append(simulator.model.environment.l_position.numpy())
-        sim_ag_dist.append(simulator.model.agent.distance.numpy())
+        simulator.step(actions)
 
         t += dt
 
-    return {
-        "init": conf_init,
-        "sim_t": np.array(sim_t).tolist(),
-        "sim_ag_pos": np.array(sim_ag_pos).tolist(),
-        "sim_ag_dist": np.array(sim_ag_dist).tolist(),
-        "sim_ag_acc": np.array(sim_ag_acc).tolist(),
-        "sim_env_pos": np.array(sim_env_pos).tolist(),
-        "sim_env_acc": np.array(sim_env_acc).tolist(),
-    }
+    return {k: v.tolist() for k, v in experimental_data.items()}
 
 
 records = []

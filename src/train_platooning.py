@@ -10,43 +10,54 @@ seed = random.randint(0, 10000)
 torch.manual_seed(seed)
 
 # Specifies the initial conditions of the setup
-agent_position = 0
-agent_velocity = np.linspace(0, 20, 40)
+follower_position = 0
+follower_velocity = np.linspace(0, 20, 40)
 leader_position = np.linspace(1, 12, 15)
 leader_velocity = np.linspace(0, 20, 40)
+initial_conditions_ranges = [
+    leader_position,
+    leader_velocity,
+    follower_position,
+    follower_velocity,
+]
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(
-    agent_position, agent_velocity, leader_position, leader_velocity, seed=seed
-)
-
-# Instantiates the world's model
-simulator = misc.Simulator(model_platooning.Model, pg.sample(sigma=0.05))
+pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges, seed=seed)
 
 # Specifies the STL formula to compute the robustness
-robustness_formula = "G(dist <= 10 & dist >= 2)"
-robustness_computer = misc.RobustnessComputer(robustness_formula)
+leader_target = "!(G(dist <= 10 & dist >= 2))"
+follower_target = "G(dist <= 10 & dist >= 2)"
 
 # Instantiates the NN architectures
-attacker = architecture.Attacker(simulator, 2, 10, 2)
-defender = architecture.Defender(simulator, 2, 10)
+nn_leader = architecture.NeuralAgent(
+    model_platooning.Agent.sensors, model_platooning.Agent.actuators, 2, 10, 2
+)
+nn_follower = architecture.NeuralAgent(
+    model_platooning.Agent.sensors, model_platooning.Agent.actuators, 2, 10
+)
+
+dt = 0.05  # timestep
+
+# Build the whole setting for the experiment
+env = model_platooning.Environment()
+leader = model_platooning.Agent("leader", nn_leader, leader_target)
+follower = model_platooning.Agent("follower", nn_follower, follower_target)
+world_model = model_platooning.Model(env, leader, follower, dt=dt)
+
+# Instantiates the world's model
+simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
 
 working_dir = "/tmp/experiments/" + f"platooning_{seed:04}"
 
 # Instantiates the traning and test environments
-trainer = architecture.Trainer(
-    simulator, robustness_computer, attacker, defender, working_dir
-)
-tester = architecture.Tester(
-    simulator, robustness_computer, attacker, defender, working_dir
-)
+trainer = architecture.Trainer(simulator, working_dir)
+tester = architecture.Tester(simulator, working_dir)
 
-dt = 0.05  # timestep
 epochs = 10  # number of train/test iterations
 
-training_steps = 5  # number of episodes for training
+training_steps = 15  # number of episodes for training
 train_simulation_horizon = int(5 / dt)  # 5 seconds
 
-test_steps = 10  # number of episodes for testing
+test_steps = 2  # number of episodes for testing
 test_simulation_horizon = int(60 / dt)  # 60 seconds
 
 for epoch in range(epochs):
@@ -54,14 +65,12 @@ for epoch in range(epochs):
     # Starts the training
     trainer.run(
         training_steps,
+        {"leader": 3, "follower": 5},
         train_simulation_horizon,
-        dt,
-        atk_steps=3,
-        def_steps=5,
         epoch=epoch,
     )
     # Starts the testing
-    tester.run(test_steps, test_simulation_horizon, dt, epoch=epoch)
+    tester.run(test_steps, test_simulation_horizon, epoch=epoch)
 
 # Saves the trained models
-misc.save_models(attacker, defender, working_dir)
+misc.save_models(nn_leader, nn_follower, working_dir)
