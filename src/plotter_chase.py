@@ -32,19 +32,16 @@ if args.dark:
 with open(os.path.join(args.dirname, "sims.json"), "r") as f:
     records = json.load(f)
 
-for r in records:
-    for var in ["ag_pos", "ag_vel", "env_pos", "env_vel"]:
-        r["atk"]["init"][var] = np.array(r["atk"]["init"][var])
+agents = ("leader", "follower")
+fields = [f"{a}_{m}" for a in agents for m in ("pos", "vel", "acc")]
 
-    for var in [
-        "sim_t",
-        "sim_ag_pos",
-        "sim_ag_dist",
-        "sim_ag_acc",
-        "sim_env_pos",
-        "sim_env_acc",
-    ]:
+for r in records:
+    for var in fields:
         r["atk"][var] = np.array(r["atk"][var])
+
+    for ag in agents:
+        d = r["atk"]["leader_pos"] - r["atk"][f"{ag}_pos"]
+        r["atk"][f"{ag}_dist"] = np.linalg.norm(d, axis=1)
 
 
 def hist(time, pulse, step_up, step_down, atk, filename):
@@ -117,13 +114,13 @@ if args.scatter:
     delta_vel_array = np.zeros(size)
 
     for i in range(size):
-        sample_trace = torch.tensor(records[i]["atk"]["sim_ag_dist"][-150:])
+        sample_trace = torch.tensor(records[i]["atk"]["follower_dist"][-150:])
         robustness = float(robustness_computer.dqs.compute(dist=sample_trace))
         delta_pos = (
-            records[i]["atk"]["init"]["env_pos"] - records[i]["atk"]["init"]["ag_pos"]
+            records[i]["atk"]["leader_pos"][0] - records[i]["atk"]["follower_pos"][0]
         )
         delta_vel = (
-            records[i]["atk"]["init"]["env_vel"] - records[i]["atk"]["init"]["ag_vel"]
+            records[i]["atk"]["leader_vel"][0] - records[i]["atk"]["follower_vel"][0]
         )
 
         robustness_array[i] = robustness
@@ -134,27 +131,25 @@ if args.scatter:
 
 if args.triplots:
     n = random.randrange(len(records))
-
-    print("attacker:", records[n]["atk"]["init"])
     plot(
-        records[n]["atk"]["sim_t"],
-        records[n]["atk"]["sim_ag_pos"],
-        np.linalg.norm(records[n]["atk"]["sim_ag_dist"], axis=1),
-        np.linalg.norm(records[n]["atk"]["sim_ag_acc"], axis=1),
-        records[n]["atk"]["sim_env_pos"],
-        np.linalg.norm(records[n]["atk"]["sim_env_acc"], axis=1),
+        records[n]["atk"]["t"],
+        records[n]["atk"]["follower_pos"],
+        records[n]["atk"]["follower_dist"],
+        np.linalg.norm(records[n]["atk"]["follower_acc"], axis=1),
+        records[n]["atk"]["leader_pos"],
+        np.linalg.norm(records[n]["atk"]["leader_acc"], axis=1),
         "triplot_attacker.png",
     )
 
 if args.hist:
     size = len(records)
-    atk_pct = np.zeros(records[0]["atk"]["sim_ag_dist"].shape[0])
+    atk_pct = np.zeros(records[0]["atk"]["follower_dist"].shape[0])
 
     for i in range(size):
-        d = np.linalg.norm(records[i]["atk"]["sim_ag_dist"], axis=1)
+        d = records[i]["atk"]["follower_dist"]
         atk_pct = atk_pct + np.logical_and(d > 2, d < 10)
 
-    time = records[0]["atk"]["sim_t"]
+    time = records[0]["atk"]["t"]
 
     pulse_pct = None
     step_up_pct = None
