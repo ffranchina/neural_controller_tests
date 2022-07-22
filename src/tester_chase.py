@@ -61,7 +61,7 @@ world_model = model_chase.Model(env, leader, follower, dt=dt)
 # Instantiates the world's model
 simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
 
-misc.load_models(nn_leader, nn_follower, args.dirname)
+misc.load_models(args.dirname, leader=nn_leader, follower=nn_follower)
 
 steps = 300
 

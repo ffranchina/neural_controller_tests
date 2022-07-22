@@ -73,4 +73,4 @@ for epoch in range(epochs):
     tester.run(test_steps, test_simulation_horizon, epoch=epoch)
 
 # Saves the trained models
-misc.save_models(nn_leader, nn_follower, working_dir)
+misc.save_models(working_dir, leader=nn_leader, follower=nn_follower)
