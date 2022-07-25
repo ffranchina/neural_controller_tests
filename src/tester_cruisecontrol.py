@@ -22,86 +22,75 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+# Specifies the initial conditions of the setup
+env_seed = np.arange(0, 1_000_000)
 agent_position = 0
 agent_velocity = np.linspace(-12, 12, 25)
-pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity)
+initial_conditions_ranges = [
+    env_seed, agent_position, agent_velocity
+]
+# Initializes the generator of initial states
+pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges)
 
-simulator = misc.Simulator(model_cruisecontrol.Model, pg.sample(sigma=0.05))
+# Instantiates the NN architectures
+nn_agent = architecture.NeuralAgent(
+    model_cruisecontrol.Agent.sensors, model_cruisecontrol.Agent.actuators, 2, 10
+)
 
-attacker = architecture.Attacker(simulator, 1, 10, 5, n_coeff=1)
-defender = architecture.Defender(simulator, 2, 10)
+dt = 0.05  # timestep
 
-misc.load_models(attacker, defender, args.dirname)
+# Build the whole setting for the experiment
+env = model_cruisecontrol.Environment()
+agent = model_cruisecontrol.Agent("car", nn_agent)
+world_model = model_cruisecontrol.Model(env, agent, dt=dt)
 
-dt = 0.05
+# Instantiates the world's model
+simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
+
+misc.load_models(args.dirname, car=nn_agent)
+
 steps = 300
 
-
+@torch.no_grad()
 def run(mode=None):
     simulator.reset_to_random()
-    conf_init = {
-        "ag_pos": simulator.model.agent.position.numpy().tolist(),
-        "ag_vel": simulator.model.agent.velocity.numpy().tolist(),
-    }
 
-    sim_t = []
-    sim_ag_pos = []
-    sim_ag_vel = []
-    sim_ag_acc = []
+    experimental_data = {}
+    experimental_data["t"] = np.zeros(steps)
+    experimental_data["pos"] = np.zeros(steps)
+    experimental_data["vel"] = np.zeros(steps)
+    experimental_data["acc"] = np.zeros(steps)
 
-    def rbf(x):
-        x = x.reshape(1) if x.dim() == 0 else x
-        w = np.array([5]) if mode == 0 else np.array([-5])
-        phi = lambda x: np.exp(-((x * 0.2) ** 2))
-        d = np.arange(len(w)) + 25
-        r = np.abs(x[:, np.newaxis] - d)
-        return w.dot(phi(r).T)
+    space = torch.linspace(0, simulator.model.environment._road.length, 1000)
+    experimental_data["road"] = simulator.model.environment._road.get_fn(space)
 
     t = 0
-    with torch.no_grad():
-        z = torch.rand(attacker.noise_size)
-        atk_policy = attacker(z)
-
-    if mode is not None:
-        simulator.model.environment._fn = rbf
-
     for i in range(steps):
-        oa = torch.tensor(simulator.model.agent.status)
+        policies, actions = {}, {}
 
-        with torch.no_grad():
-            def_policy = defender(oa)
+        for agent in simulator.model.agents.values():
+            noise = torch.rand(agent.nn.input_noise_size)
+            sensors = torch.tensor(agent.status)
 
-        atk_input = atk_policy(0) if mode is None else None
-        def_input = def_policy(dt)
+            policies[agent.label] = agent.nn(torch.cat((noise, sensors)))
+            actions[agent.label] = policies[agent.label](simulator.model.dt)
 
-        simulator.step(atk_input, def_input, dt)
+        experimental_data["t"][i] = t
+        for agent in simulator.model.agents.values():
+            experimental_data["pos"][i] = agent.position.numpy()
+            experimental_data["vel"][i] = agent.velocity.numpy()
+            experimental_data["acc"][i] = actions[agent.label].numpy()
 
-        sim_ag_acc.append(def_input.numpy())
-        sim_t.append(t)
-        sim_ag_pos.append(simulator.model.agent.position.numpy())
-        sim_ag_vel.append(simulator.model.agent.velocity.numpy())
+        simulator.step(actions)
 
         t += dt
 
-    x = np.arange(0, 100, simulator.model.environment._dx)
-    y = simulator.model.environment.get_fn(torch.tensor(x))
-
-    return {
-        "init": conf_init,
-        "space": {"x": x.tolist(), "y": y.tolist()},
-        "sim_t": np.array(sim_t).tolist(),
-        "sim_ag_pos": np.array(sim_ag_pos).tolist(),
-        "sim_ag_vel": np.array(sim_ag_vel).tolist(),
-        "sim_ag_acc": np.array(sim_ag_acc).tolist(),
-    }
-
+    return {k: v.tolist() for k, v in experimental_data.items()}
 
 records = []
 for i in range(args.repetitions):
     sim = {}
-    sim["up"] = run(0)
-    sim["down"] = run(1)
-    sim["atk"] = run()
+    sim["up"] = run()
 
     records.append(sim)
 

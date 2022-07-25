@@ -10,33 +10,41 @@ seed = random.randint(0, 10000)
 torch.manual_seed(seed)
 
 # Specifies the initial conditions of the setup
-agent_position = np.arange(model_cruisecontrol.ROAD_LENGTH)
+env_seed = np.arange(0, 1_000_000)
+agent_position = 0
 agent_velocity = np.linspace(-12, 12, 25)
+initial_conditions_ranges = [
+    env_seed, agent_position, agent_velocity
+]
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, seed=seed)
-
-# Instantiates the world's model
-simulator = misc.Simulator(model_cruisecontrol.Model, pg.sample(sigma=0.05))
+pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges, seed=seed)
 
 # Specifies the STL formula to compute the robustness
-robustness_formula = "G(v >= 4.75 & v <= 5.25)"
-robustness_computer = misc.RobustnessComputer(robustness_formula)
+agent_target = "G(vel >= 4.75 & vel <= 5.25)"
 
 # Instantiates the NN architectures
-attacker = architecture.Attacker(simulator, 1, 10, 5, n_coeff=1)
-defender = architecture.Defender(simulator, 2, 10)
+nn_agent = architecture.NeuralAgent(
+    model_cruisecontrol.Agent.sensors, model_cruisecontrol.Agent.actuators, 2, 10
+)
+
+dt = 0.05  # timestep
+
+# Build the whole setting for the experiment
+env = model_cruisecontrol.Environment()
+agent = model_cruisecontrol.Agent("car", nn_agent, agent_target)
+world_model = model_cruisecontrol.Model(env, agent, dt=dt)
+
+# Instantiates the world's model
+simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
 
 working_dir = "/tmp/experiments/" + f"cruise_{seed:04}"
 
 # Instantiates the traning environment
-trainer = architecture.Trainer(
-    simulator, robustness_computer, attacker, defender, working_dir
-)
+trainer = architecture.Trainer(simulator, working_dir)
 
-dt = 0.05  # timestep
 epochs = 10  # number of train/test iterations
 
-training_steps = 30  # number of episodes for training
+training_steps = 10  # number of episodes for training
 train_simulation_horizon = int(0.5 / dt)  # 5 seconds
 
 for epoch in range(epochs):
@@ -44,13 +52,10 @@ for epoch in range(epochs):
     # Starts the training
     trainer.run(
         training_steps,
+        {"car": 10},
         train_simulation_horizon,
-        dt,
-        atk_steps=1,
-        def_steps=10,
-        atk_static=True,
         epoch=epoch,
     )
 
 # Saves the trained models
-misc.save_models(attacker, defender, working_dir)
+misc.save_models(working_dir, car=nn_agent)

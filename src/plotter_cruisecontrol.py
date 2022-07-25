@@ -25,51 +25,30 @@ with open(os.path.join(args.dirname, "sims.json"), "r") as f:
     records = json.load(f)
 
 for r in records:
-    for mode in ["up", "down", "atk"]:
+    for mode in ["up"]:
 
-        for var in ["ag_pos", "ag_vel"]:
-            r[mode]["init"][var] = np.array(r[mode]["init"][var])
-
-        for var in ["x", "y"]:
-            r[mode]["space"][var] = np.array(r[mode]["space"][var])
-
-        for var in ["sim_t", "sim_ag_pos", "sim_ag_vel", "sim_ag_acc"]:
+        for var in ['t', "pos", 'vel', 'acc', 'road']:
             r[mode][var] = np.array(r[mode][var])
 
-
-def hist(time, up, down, atk, filename):
+def hist(time, up, down, filename):
     fig, ax = plt.subplots(1, 3, figsize=(10, 3), sharex=True)
 
     ax[0].plot(time, up * 100)
-    ax[0].fill_between(time, up[:, 0] * 100, alpha=0.5)
+    ax[0].fill_between(time, up * 100, alpha=0.5)
     ax[0].set(xlabel="time (s)", ylabel="% correct")
     ax[0].title.set_text("Hill")
-
-    ax[1].plot(time, down * 100)
-    ax[1].fill_between(time, down[:, 0] * 100, alpha=0.5)
-    ax[1].set(xlabel="time (s)", ylabel="% correct")
-    ax[1].title.set_text("Valley")
-
-    ax[2].plot(time, atk * 100)
-    ax[2].fill_between(time, atk[:, 0] * 100, alpha=0.5)
-    ax[2].set(xlabel="time (s)", ylabel="% correct")
-    ax[2].title.set_text("Attacker (RBF)")
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
 
 
-def plot(space, sim_time, sim_agent_pos, sim_agent_vel, sim_agent_acc, filename):
+def plot(road, sim_time, sim_agent_pos, sim_agent_vel, sim_agent_acc, filename):
     fig, ax = plt.subplots(1, 3, figsize=(12, 3))
 
-    # ax[0].scatter(0, space['init_ypos'], color='g', label='start')
-    # ax[0].scatter(sim_agent_pos[-1], space['end_ypos'], color='r', label='end')
-    ax[0].axvline(0, ls="--", color="orange", label="start")
-    ax[0].axvline(sim_agent_pos[-1], ls="--", color="g", label="end")
-    ax[0].plot(space["x"], space["y"], zorder=-1)
+    ax[0].plot(np.linspace(0, 50, 1000), road, zorder=-1)
     ax[0].set(xlabel="space (m)", ylabel="elevation (m)")
-    ax[0].axis("equal")
-    ax[0].legend()
+    ax[0].set_ylim(( np.min(road) - 1, np.max(road) + 1 ))
+    ax[0].set_xlim(( -1, sim_agent_pos[-1] +1 ))
 
     ax[1].axhline(4.75, ls="--", color="r")
     ax[1].axhline(5.25, ls="--", color="r")
@@ -85,53 +64,37 @@ def plot(space, sim_time, sim_agent_pos, sim_agent_vel, sim_agent_acc, filename)
 
 if args.triplots:
     n = random.randrange(len(records))
-    print("up:", records[n]["up"]["init"])
     plot(
-        records[n]["up"]["space"],
-        records[n]["up"]["sim_t"],
-        records[n]["up"]["sim_ag_pos"],
-        records[n]["up"]["sim_ag_vel"],
-        records[n]["up"]["sim_ag_acc"],
+        records[n]["up"]["road"],
+        records[n]["up"]["t"],
+        records[n]["up"]["pos"],
+        records[n]["up"]["vel"],
+        records[n]["up"]["acc"],
         "triplot_up.png",
     )
 
-    print("down:", records[n]["down"]["init"])
-    plot(
-        records[n]["down"]["space"],
-        records[n]["down"]["sim_t"],
-        records[n]["down"]["sim_ag_pos"],
-        records[n]["down"]["sim_ag_vel"],
-        records[n]["down"]["sim_ag_acc"],
-        "triplot_down.png",
-    )
-
-    print("atk:", records[n]["atk"]["init"])
-    plot(
-        records[n]["atk"]["space"],
-        records[n]["atk"]["sim_t"],
-        records[n]["atk"]["sim_ag_pos"],
-        records[n]["atk"]["sim_ag_vel"],
-        records[n]["atk"]["sim_ag_acc"],
-        "triplot_atk.png",
-    )
+    # plot(
+    #     records[n]["down"]["road"],
+    #     records[n]["down"]["t"],
+    #     records[n]["down"]["pos"],
+    #     records[n]["down"]["vel"],
+    #     records[n]["down"]["acc"],
+    #     "triplot_down.png",
+    # )
 
 if args.hist:
     size = len(records)
-    up_pct = np.zeros_like(records[0]["up"]["sim_ag_vel"])
-    down_pct = np.zeros_like(records[0]["down"]["sim_ag_vel"])
-    atk_pct = np.zeros_like(records[0]["atk"]["sim_ag_vel"])
+    up_pct = np.zeros_like(records[0]["up"]["vel"])
+    # down_pct = np.zeros_like(records[0]["down"]["vel"])
 
     for i in range(size):
-        t = records[i]["up"]["sim_ag_vel"]
+        t = records[i]["up"]["vel"]
         up_pct = up_pct + np.logical_and(t > 4.75, t < 5.25)
-        t = records[i]["down"]["sim_ag_vel"]
-        down_pct = down_pct + np.logical_and(t > 4.75, t < 5.25)
-        t = records[i]["atk"]["sim_ag_vel"]
-        atk_pct = atk_pct + np.logical_and(t > 4.75, t < 5.25)
+        # t = records[i]["down"]["vel"]
+        # down_pct = down_pct + np.logical_and(t > 4.75, t < 5.25)
 
-    time = records[0]["up"]["sim_t"]
+    time = records[0]["up"]["t"]
     up_pct = up_pct / size
-    down_pct = down_pct / size
-    atk_pct = atk_pct / size
+    down_pct = None
 
-    hist(time, up_pct, down_pct, atk_pct, "pct_histogram.png")
+    hist(time, up_pct, down_pct, "pct_histogram.png")
