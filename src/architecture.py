@@ -120,9 +120,14 @@ class Trainer:
         for agent in self.agents.values():
             self.simulator.reset_to_random()  # samples a random initial state
 
-            for _ in range(agent_replays[agent.label]):
-                losses[agent.label] = self.train_agent(agent, time_horizon)
+            n_replays = agent_replays[agent.label]
+            agent_losses = torch.zeros(n_replays)
+
+            for i in range(n_replays):
+                agent_losses[i] = self.train_agent(agent, time_horizon)
                 self.simulator.reset()  # restores the initial state
+
+            losses[agent.label] = torch.mean(agent_losses)
 
         return losses
 
