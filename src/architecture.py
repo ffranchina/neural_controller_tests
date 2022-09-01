@@ -165,9 +165,6 @@ class Trainer:
                         n_steps * epoch + i,
                     )
 
-        if self.logging:
-            self.log.close()
-
 
 class Tester:
     """The class contains the testing logic"""
@@ -221,6 +218,3 @@ class Tester:
                     self.log.add_scalar(
                         f"{label}_test/robustness", rho, times * epoch + i
                     )
-
-        if self.logging:
-            self.log.close()
