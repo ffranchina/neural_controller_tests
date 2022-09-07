@@ -206,20 +206,26 @@ class Tester:
 
             self.simulator.step(actions)
 
-        rhos = {
-            agent.label: agent.robustness_computer.compute(self.simulator)
+        positive_percentage = {
+            agent.label: agent.robustness_computer.positive_percentage(self.simulator)
             for agent in self.agents.values()
         }
 
-        return rhos
+        return positive_percentage
 
     def run(self, times, time_horizon=1000, epoch=0):
         """Test the architecture and provides logging"""
         rho_list = torch.zeros(times)
+        percentages = []
         for i in tqdm(range(times)):
-            rhos = self.test(time_horizon)
-            for label, rho in rhos.items():
-                if self.logging:
-                    self.log.add_scalar(
-                        f"{label}_test/robustness", rho, times * epoch + i
-                    )
+            percentages.append(self.test(time_horizon))
+
+        if self.logging:
+            for agent in self.agents.values():
+                values = torch.tensor([p[agent.label] for p in percentages])
+
+                self.log.add_scalar(
+                    f"{agent.label}_test/mean_robustness", torch.mean(values), epoch
+                )
+
+                self.log.add_histogram(f"{agent.label}_test/robustness", values, epoch)

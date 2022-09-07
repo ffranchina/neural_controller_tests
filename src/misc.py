@@ -47,6 +47,7 @@ class Simulator:
 
         self._previous_initial_state = None
         self.recordings = {}
+        self.recorded_steps = 0
 
     def step(self, agent_actions):
         """Updates the physical world with the evolution of
@@ -63,12 +64,15 @@ class Simulator:
             else:
                 self.recordings[key] = [value]
 
+        self.recorded_steps += 1
+
     def reset_to(self, parameters):
         """Sets the world's state as specified"""
         self._previous_initial_state = parameters
 
         self.model.state = parameters
         self.recordings = {}
+        self.recorded_steps = 0
         self.record_step()
 
     def reset_to_random(self):
@@ -86,6 +90,15 @@ class RobustnessComputer:
 
     def __init__(self, formula):
         self.dqs = DiffQuantitativeSemantic(formula)
+
+    def positive_percentage(self, simulator):
+        positive_counter = 0
+        for i in range(simulator.recorded_steps):
+            recorded_slice = {k: v[i] for k, v in simulator.recordings.items()}
+            if self.dqs.compute(**recorded_slice) >= 0:
+                positive_counter += 1
+
+        return positive_counter / simulator.recorded_steps
 
     def compute(self, simulator):
         """Computes rho for the given trace"""
