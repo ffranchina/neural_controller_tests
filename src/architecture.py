@@ -137,36 +137,10 @@ class Trainer:
             losses = self.train(agent_replays, time_horizon)
 
             if self.logging:
-
                 for agent in self.agents.values():
                     self.log.add_scalar(
-                        f"{agent.label}_train/loss",
+                        f"{agent.label}/train_mean_loss",
                         losses[agent.label],
-                        n_steps * epoch + i,
-                    )
-
-                    params = torch.cat(
-                        [torch.flatten(param.data) for param in agent.nn.parameters()]
-                    )
-
-                    params_var, params_mean = torch.var_mean(params)
-                    params_norm = torch.linalg.norm(params)
-
-                    self.log.add_scalar(
-                        f"{agent.label}_train/weights variance",
-                        params_var,
-                        n_steps * epoch + i,
-                    )
-
-                    self.log.add_scalar(
-                        f"{agent.label}_train/weights mean",
-                        params_mean,
-                        n_steps * epoch + i,
-                    )
-
-                    self.log.add_scalar(
-                        f"{agent.label}_train/weights norm",
-                        params_norm,
                         n_steps * epoch + i,
                     )
 
@@ -225,7 +199,7 @@ class Tester:
                 values = torch.tensor([p[agent.label] for p in percentages])
 
                 self.log.add_scalar(
-                    f"{agent.label}_test/mean_robustness", torch.mean(values), epoch
+                    f"{agent.label}/test_mean_robustness", torch.mean(values), epoch
                 )
 
-                self.log.add_histogram(f"{agent.label}_test/robustness", values, epoch)
+                self.log.add_histogram(f"{agent.label}/test_robustness", values, epoch)
