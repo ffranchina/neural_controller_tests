@@ -1,11 +1,10 @@
+import json
 import os
 import random
-import json
+from argparse import ArgumentParser
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-from argparse import ArgumentParser
 
 parser = ArgumentParser()
 parser.add_argument("dirname", help="model's directory")
@@ -27,8 +26,9 @@ with open(os.path.join(args.dirname, "sims.json"), "r") as f:
 for r in records:
     for mode in ["up"]:
 
-        for var in ['t', "pos", 'vel', 'acc', 'road']:
+        for var in ["t", "pos", "vel", "acc", "road"]:
             r[mode][var] = np.array(r[mode][var])
+
 
 def hist(time, up, down, filename):
     fig, ax = plt.subplots(1, 3, figsize=(10, 3), sharex=True)
@@ -47,8 +47,8 @@ def plot(road, sim_time, sim_agent_pos, sim_agent_vel, sim_agent_acc, filename):
 
     ax[0].plot(np.linspace(0, 50, 1000), road, zorder=-1)
     ax[0].set(xlabel="space (m)", ylabel="elevation (m)")
-    ax[0].set_ylim(( np.min(road) - 1, np.max(road) + 1 ))
-    ax[0].set_xlim(( -1, sim_agent_pos[-1] +1 ))
+    ax[0].set_ylim((np.min(road) - 1, np.max(road) + 1))
+    ax[0].set_xlim((-1, sim_agent_pos[-1] + 1))
 
     ax[1].axhline(4.75, ls="--", color="r")
     ax[1].axhline(5.25, ls="--", color="r")

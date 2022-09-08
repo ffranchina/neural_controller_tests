@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 
 import abstract_model
 
@@ -51,7 +51,7 @@ class Road:
         self._means = None
         self._weights = None
         self._shapes = None
-        self.seed = 0 # uses the setter
+        self.seed = 0  # uses the setter
 
     @property
     def seed(self):
@@ -63,8 +63,8 @@ class Road:
         self._rng = np.random.default_rng(self._seed)
 
         self._means = self._rng.random(self.bumps) * self.length
-        self._weights = self._rng.random(self.bumps) * 2 # more variance
-        self._shapes = self._rng.random(self.bumps) * 0.5 # flatter shapes
+        self._weights = self._rng.random(self.bumps) * 2  # more variance
+        self._shapes = self._rng.random(self.bumps) * 0.5  # flatter shapes
 
     def gaussian_rbf(self, x):
         x = x.reshape(1)
@@ -102,8 +102,6 @@ class Environment(abstract_model.Environment):
 
     def get_angle(self, position):
         return self._road.get_steepness(position)
-
-
 
 
 class Agent(abstract_model.Agent):
@@ -146,8 +144,6 @@ class Agent(abstract_model.Agent):
         self._car.update(acceleration, self.angle, dt)
 
 
-
-
 class Model(abstract_model.Model):
     """The model of the whole world.
     It includes both the attacker and the defender.
@@ -158,8 +154,8 @@ class Model(abstract_model.Model):
         values = []
 
         values.append(self.environment.seed)
-        values.append(self.agents['car'].position)
-        values.append(self.agents['car'].velocity)
+        values.append(self.agents["car"].position)
+        values.append(self.agents["car"].velocity)
 
         return values
 
@@ -167,11 +163,9 @@ class Model(abstract_model.Model):
     def state(self, values):
         """Sets the world's state as specified"""
         self.environment.seed = values[0]
-        self.agents['car'].position = torch.tensor(values[1]).reshape(1)
-        self.agents['car'].velocity = torch.tensor(values[2]).reshape(1)
+        self.agents["car"].position = torch.tensor(values[1]).reshape(1)
+        self.agents["car"].velocity = torch.tensor(values[2]).reshape(1)
 
     @property
     def observables(self):
-        return {
-            "vel": self.agents['car'].velocity
-        }
+        return {"vel": self.agents["car"].velocity}

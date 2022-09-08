@@ -1,10 +1,11 @@
-import misc
-import architecture
-import model_platooning
-
-import torch
 import random
+
 import numpy as np
+import torch
+
+import architecture
+import misc
+import model_platooning
 
 seed = random.randint(0, 10000)
 torch.manual_seed(seed)

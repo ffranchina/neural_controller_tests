@@ -1,14 +1,13 @@
-import os
 import json
-
-import model_cruisecontrol
-import misc
-import architecture
-
-import torch
-import numpy as np
-
+import os
 from argparse import ArgumentParser
+
+import numpy as np
+import torch
+
+import architecture
+import misc
+import model_cruisecontrol
 
 parser = ArgumentParser()
 parser.add_argument("dirname", help="model's directory")
@@ -26,9 +25,7 @@ args = parser.parse_args()
 env_seed = np.arange(0, 1_000_000)
 agent_position = 0
 agent_velocity = np.linspace(-12, 12, 25)
-initial_conditions_ranges = [
-    env_seed, agent_position, agent_velocity
-]
+initial_conditions_ranges = [env_seed, agent_position, agent_velocity]
 # Initializes the generator of initial states
 pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges)
 
@@ -50,6 +47,7 @@ simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
 misc.load_models(args.dirname, car=nn_agent)
 
 steps = 300
+
 
 @torch.no_grad()
 def run(mode=None):
@@ -86,6 +84,7 @@ def run(mode=None):
         t += dt
 
     return {k: v.tolist() for k, v in experimental_data.items()}
+
 
 records = []
 for i in range(args.repetitions):

@@ -1,14 +1,13 @@
-import os
 import json
-
-import model_platooning
-import misc
-import architecture
-
-import torch
-import numpy as np
-
+import os
 from argparse import ArgumentParser
+
+import numpy as np
+import torch
+
+import architecture
+import misc
+import model_platooning
 
 parser = ArgumentParser()
 parser.add_argument("dirname", help="model's directory")

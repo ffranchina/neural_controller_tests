@@ -1,10 +1,11 @@
-import misc
-import architecture
-import model_cruisecontrol
-
-import torch
 import random
+
 import numpy as np
+import torch
+
+import architecture
+import misc
+import model_cruisecontrol
 
 seed = random.randint(0, 10000)
 torch.manual_seed(seed)
@@ -13,9 +14,7 @@ torch.manual_seed(seed)
 env_seed = np.arange(0, 1_000_000)
 agent_position = 0
 agent_velocity = np.linspace(-12, 12, 25)
-initial_conditions_ranges = [
-    env_seed, agent_position, agent_velocity
-]
+initial_conditions_ranges = [env_seed, agent_position, agent_velocity]
 # Initializes the generator of initial states
 pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges, seed=seed)
 

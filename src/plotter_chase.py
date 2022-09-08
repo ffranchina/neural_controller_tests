@@ -1,16 +1,14 @@
+import json
 import os
 import random
-import json
+from argparse import ArgumentParser
 
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 
 import misc
-
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import numpy as np
-
-from argparse import ArgumentParser
 
 parser = ArgumentParser()
 parser.add_argument("dirname", help="model's directory")

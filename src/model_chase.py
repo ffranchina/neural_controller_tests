@@ -1,7 +1,7 @@
 import torch
 
-import misc
 import abstract_model
+import misc
 
 
 class Drone:
