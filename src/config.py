@@ -67,6 +67,7 @@ class ExperimentalConfiguration:
             self._config["seed"] = random.randint(0, 10000)
 
         self._preprocess()
+        self._validate()
 
     def _preprocess(self):
         # Convert class references into Python objects
@@ -95,6 +96,52 @@ class ExperimentalConfiguration:
             self._config["simulator"]["dt"],
             self._config["testing"]["simulation_horizon"],
         )
+
+    def _validate(self):
+        assert type(self._config["seed"]) == int
+        assert type(self._config["label"]) == str
+        assert type(self._config["model"]) == str
+        assert type(self._config["workdir"]) == str
+
+        assert type(self._config["simulator"]["dt"]) == float
+        assert type(self._config["simulator"]["sigma_sampling"]) == float
+
+        assert issubclass(
+            self._config["environment"]["object"], abstract_model.Environment
+        )
+
+        for name in self.agent_names:
+            assert issubclass(
+                self._config["agents"][name]["object"], abstract_model.Agent
+            )
+            assert type(self._config["agents"][name]["target"]) == str
+
+        assert type(self._config["agents"][name]["nn"]["n_layers"]) == int
+        assert type(self._config["agents"][name]["nn"]["layer_size"]) == int
+
+        if self._config["agents"][name]["nn"]["input_noise_size"] is not None:
+            assert type(self._config["agents"][name]["nn"]["input_noise_size"]) == int
+
+        if self._config["agents"][name]["nn"]["n_coefficients"] is not None:
+            assert type(self._config["agents"][name]["nn"]["n_coefficients"]) == int
+
+        assert type(self._config["agents"][name]["training"]["replay"]) == int
+
+        for sub_agent_config in ["training", "testing"]:
+            init_keys = [
+                k
+                for k in self._config["agents"][name][sub_agent_config].keys()
+                if k.startswith("init_")
+            ]
+            for k in init_keys:
+                assert self._config["agents"][name][sub_agent_config][k] is not None
+
+        assert type(self._config["training"]["simulation_horizon"]) == int
+        assert type(self._config["training"]["epochs"]) == int
+        assert type(self._config["training"]["episodes"]) == int
+
+        assert type(self._config["testing"]["simulation_horizon"]) == int
+        assert type(self._config["testing"]["episodes"]) == int
 
     @property
     def agent_names(self):
