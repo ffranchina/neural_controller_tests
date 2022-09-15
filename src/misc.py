@@ -61,6 +61,7 @@ class Simulator:
 
     def record_step(self):
         for key, value in self.model.observables.items():
+            value = value.reshape(-1)  # To make sure it has a dimension
             if key in self.recordings:
                 self.recordings[key].append(value)
             else:

@@ -144,11 +144,9 @@ class Model(abstract_model.Model):
     def state(self, values):
         """Sets the world's state as specified"""
         for agent in self.agents.values():
-            agent.position = torch.tensor(values[f"{agent.label}_position"]).reshape(2)
-            agent.velocity = torch.tensor(values[f"{agent.label}_velocity"]).reshape(2)
+            agent.position = torch.tensor(values[f"{agent.label}_position"])
+            agent.velocity = torch.tensor(values[f"{agent.label}_velocity"])
 
     @property
     def observables(self):
-        return {
-            "dist": torch.linalg.norm(self.environment.follower.distance).reshape(1)
-        }
+        return {"dist": torch.linalg.norm(self.environment.follower.distance)}

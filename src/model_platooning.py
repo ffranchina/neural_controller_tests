@@ -103,8 +103,8 @@ class Model(abstract_model.Model):
     def state(self, values):
         """Sets the world's state as specified"""
         for agent in self.agents.values():
-            agent.position = torch.tensor(values[f"{agent.label}_position"]).reshape(1)
-            agent.velocity = torch.tensor(values[f"{agent.label}_velocity"]).reshape(1)
+            agent.position = torch.tensor(values[f"{agent.label}_position"])
+            agent.velocity = torch.tensor(values[f"{agent.label}_velocity"])
 
     @property
     def observables(self):

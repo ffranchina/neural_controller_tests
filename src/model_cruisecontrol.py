@@ -21,7 +21,7 @@ class Car:
     def update(self, in_acceleration, angle, dt):
         """Differential equation for updating the state of the car"""
         self.acceleration = torch.clamp(
-            in_acceleration.reshape(1), self._min_acceleration, self._max_acceleration
+            in_acceleration, self._min_acceleration, self._max_acceleration
         )
         self.acceleration -= self.gravity * torch.sin(angle)
         if self.velocity != 0:
@@ -78,7 +78,8 @@ class Road:
         x = x.clone().detach().numpy()
         dy = self._fn(x + self._dx) - self._fn(x)
         deriv = dy / torch.tensor(self._dx)
-        return torch.clamp(deriv, -self._max_angular_coeff, self._max_angular_coeff)
+        clamped = torch.clamp(deriv, -self._max_angular_coeff, self._max_angular_coeff)
+        return torch.tensor(clamped.item())
 
     def get_fn(self, x):
         """Computes the value of the road's height in a given point"""
@@ -169,10 +170,10 @@ class Model(abstract_model.Model):
         for agent in self.agents.values():
             self.agents[agent.label].position = torch.tensor(
                 values[f"{agent.label}_position"]
-            ).reshape(1)
+            )
             self.agents[agent.label].velocity = torch.tensor(
                 values[f"{agent.label}_velocity"]
-            ).reshape(1)
+            )
 
     @property
     def observables(self):
