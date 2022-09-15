@@ -27,18 +27,19 @@ class ParametersHyperparallelepiped:
     order to encourage the exploration of the space.
     """
 
-    def __init__(self, *ranges, seed=None):
-        self._ranges = ranges
+    def __init__(self, seed=None, **ranges):
+        # Force order invariance by sorting the dictionary
+        self._ranges = {k: ranges[k] for k in sorted(ranges)}
         self._rng = np.random.default_rng(seed)
 
     def sample(self, mu=0, sigma=1):
         while True:
-            yield [
-                self._rng.choice(r) + self._rng.normal(mu, sigma)
-                if isinstance(r, np.ndarray)
-                else np.array(r, dtype=np.float64)
-                for r in self._ranges
-            ]
+            yield {
+                k: self._rng.choice(v) + self._rng.normal(mu, sigma)
+                if isinstance(v, np.ndarray)
+                else np.array(v, dtype=np.float64)
+                for k, v in self._ranges.items()
+            }
 
 
 class Simulator:
