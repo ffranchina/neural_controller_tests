@@ -11,12 +11,13 @@ seed = random.randint(0, 10000)
 torch.manual_seed(seed)
 
 # Specifies the initial conditions of the setup
-env_seed = np.arange(0, 1_000_000)
-agent_position = 0
-agent_velocity = np.linspace(-12, 12, 25)
-initial_conditions_ranges = [env_seed, agent_position, agent_velocity]
+initial_conditions_ranges = {
+    "environment_seed": np.arange(0, 1_000_000),
+    "car_position": 0,
+    "car_velocity": np.linspace(-12, 12, 25),
+}
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges, seed=seed)
+pg = misc.ParametersHyperparallelepiped(**initial_conditions_ranges, seed=seed)
 
 # Specifies the STL formula to compute the robustness
 agent_target = "G(vel >= 4.75 & vel <= 5.25)"
