@@ -43,8 +43,8 @@ class ParametersHyperparallelepiped:
 
 
 class Simulator:
-    def __init__(self, physical_model_object, param_generator):
-        self.model = physical_model_object
+    def __init__(self, world_model, param_generator):
+        self.world = world_model
         self._param_generator = param_generator
 
         self._previous_initial_state = None
@@ -56,11 +56,11 @@ class Simulator:
         a single instant of time.
         """
         if self._previous_initial_state is not None:
-            self.model.step(agent_actions)
+            self.world.step(agent_actions)
             self.record_step()
 
     def record_step(self):
-        for key, value in self.model.observables.items():
+        for key, value in self.world.observables.items():
             value = value.reshape(-1)  # To make sure it has a dimension
             if key in self.recordings:
                 self.recordings[key].append(value)
@@ -73,7 +73,7 @@ class Simulator:
         """Sets the world's state as specified"""
         self._previous_initial_state = parameters
 
-        self.model.state = parameters
+        self.world.state = parameters
         self.recordings = {}
         self.recorded_steps = 0
         self.record_step()

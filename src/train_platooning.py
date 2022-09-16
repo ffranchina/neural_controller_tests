@@ -38,7 +38,7 @@ dt = 0.05  # timestep
 env = model_platooning.Environment()
 leader = model_platooning.Agent("leader", nn_leader, leader_target)
 follower = model_platooning.Agent("follower", nn_follower, follower_target)
-world_model = model_platooning.Model(env, leader, follower, dt=dt)
+world_model = model_platooning.World(env, leader, follower, dt=dt)
 
 # Instantiates the world's model
 simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))

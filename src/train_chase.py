@@ -46,7 +46,7 @@ dt = 0.05  # timestep
 env = model_chase.Environment()
 leader = model_chase.Leader("leader", nn_leader, leader_target)
 follower = model_chase.Agent("follower", nn_follower, follower_target)
-world_model = model_chase.Model(env, leader, follower, dt=dt)
+world_model = model_chase.World(env, leader, follower, dt=dt)
 
 # Instantiates the world's model
 simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))

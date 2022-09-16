@@ -68,7 +68,7 @@ class Trainer:
     ):
 
         self.simulator = simulator
-        self.agents = self.simulator.model.agents
+        self.agents = self.simulator.world.agents
 
         self.loss_function = lambda x: -x
 
@@ -99,7 +99,7 @@ class Trainer:
 
             self.simulator.step(actions)
 
-            t += self.simulator.model.dt
+            t += self.simulator.world.dt
 
         rho = training_agent.robustness_computer.compute(self.simulator)
 
@@ -154,7 +154,7 @@ class Tester:
     ):
 
         self.simulator = simulator
-        self.agents = self.simulator.model.agents
+        self.agents = self.simulator.world.agents
 
         self.logging = True if logging_dir else False
 
@@ -175,7 +175,7 @@ class Tester:
                 with torch.no_grad():
                     policies[agent.label] = agent.nn(torch.cat((noise, sensors)))
 
-                actions[agent.label] = policies[agent.label](self.simulator.model.dt)
+                actions[agent.label] = policies[agent.label](self.simulator.world.dt)
 
             self.simulator.step(actions)
 

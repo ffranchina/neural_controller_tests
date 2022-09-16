@@ -88,7 +88,7 @@ class Agent(abstract_model.Agent):
         self._car.update(acceleration, dt)
 
 
-class Model(abstract_model.Model):
+class World(abstract_model.World):
     @property
     def state(self):
         values = {}

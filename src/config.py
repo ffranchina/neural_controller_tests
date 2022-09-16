@@ -71,6 +71,9 @@ class ExperimentalConfiguration:
 
     def _preprocess(self):
         # Convert class references into Python objects
+        self._config["simulator"]["object"] = ConfigUtils.to_class(
+            self._config["model"], self._config["simulator"]["object"]
+        )
         self._config["environment"]["object"] = ConfigUtils.to_class(
             self._config["model"], self._config["environment"]["object"]
         )
@@ -105,6 +108,7 @@ class ExperimentalConfiguration:
 
         assert type(self._config["simulator"]["dt"]) == float
         assert type(self._config["simulator"]["sigma_sampling"]) == float
+        assert issubclass(self._config["simulator"]["object"], abstract_model.World)
 
         assert issubclass(
             self._config["environment"]["object"], abstract_model.Environment

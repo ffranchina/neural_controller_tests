@@ -32,7 +32,7 @@ dt = 0.05  # timestep
 # Build the whole setting for the experiment
 env = model_cruisecontrol.Environment()
 agent = model_cruisecontrol.Agent("car", nn_agent, agent_target)
-world_model = model_cruisecontrol.Model(env, agent, dt=dt)
+world_model = model_cruisecontrol.World(env, agent, dt=dt)
 
 # Instantiates the world's model
 simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))

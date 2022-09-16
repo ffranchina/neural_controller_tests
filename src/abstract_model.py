@@ -57,7 +57,7 @@ class Agent(ABC):
         pass
 
 
-class Model(ABC):
+class World(ABC):
     def __init__(self, environment, *agents, dt=0.05):
         assert environment is not None
         assert agents is not None

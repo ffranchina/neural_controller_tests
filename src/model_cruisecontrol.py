@@ -145,7 +145,7 @@ class Agent(abstract_model.Agent):
         self._car.update(acceleration, self.angle, dt)
 
 
-class Model(abstract_model.Model):
+class World(abstract_model.World):
     """The model of the whole world.
     It includes both the attacker and the defender.
     """
