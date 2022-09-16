@@ -23,23 +23,20 @@ args = parser.parse_args()
 
 # Specifies the initial conditions of the setup
 follower_position = [0.0, 0.0]
-follower_velocity = np.array(
-    np.meshgrid(np.linspace(0, 5, 10), np.linspace(0, 5, 10))
-).T.reshape(-1, 2)
-leader_position = np.array(
-    np.meshgrid(np.linspace(1, 11, 15), np.linspace(1, 11, 15))
-).T.reshape(-1, 2)
-leader_velocity = np.array(
-    np.meshgrid(np.linspace(0, 5, 10), np.linspace(0, 5, 10))
-).T.reshape(-1, 2)
-initial_conditions_ranges = [
-    leader_position,
-    leader_velocity,
-    follower_position,
-    follower_velocity,
-]
+initial_conditions_ranges = {
+    "follower_position": [0.0, 0.0],
+    "follower_velocity": np.array(
+        np.meshgrid(np.linspace(0, 5, 10), np.linspace(0, 5, 10))
+    ).T.reshape(-1, 2),
+    "leader_position": np.array(
+        np.meshgrid(np.linspace(1, 11, 15), np.linspace(1, 11, 15))
+    ).T.reshape(-1, 2),
+    "leader_velocity": np.array(
+        np.meshgrid(np.linspace(0, 5, 10), np.linspace(0, 5, 10))
+    ).T.reshape(-1, 2),
+}
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges)
+pg = misc.ParametersHyperspace(**initial_conditions_ranges, sigma=0.05)
 
 # Instantiates the NN architectures
 nn_leader = architecture.NeuralAgent(
@@ -58,7 +55,7 @@ follower = model_chase.Agent("follower", nn_follower)
 world_model = model_chase.World(env, leader, follower, dt=dt)
 
 # Instantiates the world's model
-simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
+simulator = misc.Simulator(world_model, pg.sample())
 
 misc.load_models(args.dirname, leader=nn_leader, follower=nn_follower)
 

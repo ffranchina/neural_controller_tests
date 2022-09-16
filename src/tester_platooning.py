@@ -22,18 +22,14 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Specifies the initial conditions of the setup
-follower_position = 0
-follower_velocity = np.linspace(0, 20, 40)
-leader_position = np.linspace(1, 12, 15)
-leader_velocity = np.linspace(0, 20, 40)
-initial_conditions_ranges = [
-    leader_position,
-    leader_velocity,
-    follower_position,
-    follower_velocity,
-]
+initial_conditions_ranges = {
+    "leader_position": np.linspace(1, 12, 15),
+    "leader_velocity": np.linspace(0, 20, 40),
+    "follower_position": 0,
+    "follower_velocity": np.linspace(0, 20, 40),
+}
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges)
+pg = misc.ParametersHyperspace(**initial_conditions_ranges, sigma=0.05)
 
 # Instantiates the NN architectures
 nn_leader = architecture.NeuralAgent(

@@ -18,7 +18,7 @@ initial_conditions_ranges = {
     "follower_velocity": np.linspace(0, 20, 40),
 }
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(**initial_conditions_ranges, seed=seed)
+pg = misc.ParametersHyperspace(**initial_conditions_ranges, seed=seed, sigma=0.05)
 
 # Specifies the STL formula to compute the robustness
 leader_target = "!(G(dist <= 10 & dist >= 2))"
@@ -41,7 +41,7 @@ follower = model_platooning.Agent("follower", nn_follower, follower_target)
 world_model = model_platooning.World(env, leader, follower, dt=dt)
 
 # Instantiates the world's model
-simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
+simulator = misc.Simulator(world_model, pg.sample())
 
 working_dir = "/tmp/experiments/" + f"platooning_{seed:04}"
 

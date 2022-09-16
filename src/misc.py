@@ -21,21 +21,22 @@ def load_models(path, **neuralagent_dict):
         nn.load_state_dict(torch.load(file_path))
 
 
-class ParametersHyperparallelepiped:
+class ParametersHyperspace:
     """Class used to sample from the hyper-grid of parameters.
     It also adds some gaussian noise to the sampled point in
     order to encourage the exploration of the space.
     """
 
-    def __init__(self, seed=None, **ranges):
+    def __init__(self, seed=None, sigma=0.5, **ranges):
         # Force order invariance by sorting the dictionary
         self._ranges = {k: ranges[k] for k in sorted(ranges)}
         self._rng = np.random.default_rng(seed)
+        self._sigma = sigma
 
-    def sample(self, mu=0, sigma=1):
+    def sample(self):
         while True:
             yield {
-                k: self._rng.choice(v) + self._rng.normal(mu, sigma)
+                k: self._rng.choice(v) + self._rng.normal(0, self._sigma)
                 if isinstance(v, np.ndarray)
                 else np.array(v, dtype=np.float64)
                 for k, v in self._ranges.items()

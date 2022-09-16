@@ -22,12 +22,13 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Specifies the initial conditions of the setup
-env_seed = np.arange(0, 1_000_000)
-agent_position = 0
-agent_velocity = np.linspace(-12, 12, 25)
-initial_conditions_ranges = [env_seed, agent_position, agent_velocity]
+initial_conditions_ranges = {
+    "environment_seed": np.arange(0, 1_000_000),
+    "car_position": 0,
+    "car_velocity": np.linspace(-12, 12, 25),
+}
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(*initial_conditions_ranges)
+pg = misc.ParametersHyperspace(**initial_conditions_ranges, sigma=0.05)
 
 # Instantiates the NN architectures
 nn_agent = architecture.NeuralAgent(
@@ -42,7 +43,7 @@ agent = model_cruisecontrol.Agent("car", nn_agent)
 world_model = model_cruisecontrol.World(env, agent, dt=dt)
 
 # Instantiates the world's model
-simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
+simulator = misc.Simulator(world_model, pg.sample())
 
 misc.load_models(args.dirname, car=nn_agent)
 

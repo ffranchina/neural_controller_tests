@@ -17,7 +17,7 @@ initial_conditions_ranges = {
     "car_velocity": np.linspace(-12, 12, 25),
 }
 # Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(**initial_conditions_ranges, seed=seed)
+pg = misc.ParametersHyperspace(**initial_conditions_ranges, seed=seed, sigma=0.05)
 
 # Specifies the STL formula to compute the robustness
 agent_target = "G(vel >= 4.75 & vel <= 5.25)"
@@ -35,7 +35,7 @@ agent = model_cruisecontrol.Agent("car", nn_agent, agent_target)
 world_model = model_cruisecontrol.World(env, agent, dt=dt)
 
 # Instantiates the world's model
-simulator = misc.Simulator(world_model, pg.sample(sigma=0.05))
+simulator = misc.Simulator(world_model, pg.sample())
 
 working_dir = "/tmp/experiments/" + f"cruise_{seed:04}"
 
