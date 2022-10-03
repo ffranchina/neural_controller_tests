@@ -55,7 +55,7 @@ follower = model_chase.Agent("follower", nn_follower)
 world_model = model_chase.World(env, leader, follower, dt=dt)
 
 # Instantiates the world's model
-simulator = misc.Simulator(world_model, pg.sample())
+simulator = misc.Simulator(world_model, pg)
 
 misc.load_models(args.dirname, leader=nn_leader, follower=nn_follower)
 

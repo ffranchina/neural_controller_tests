@@ -33,14 +33,13 @@ class ParametersHyperspace:
         self._rng = np.random.default_rng(seed)
         self._sigma = sigma
 
-    def sample(self):
-        while True:
-            yield {
-                k: self._rng.choice(v) + self._rng.normal(0, self._sigma)
-                if isinstance(v, np.ndarray)
-                else np.array(v, dtype=np.float64)
-                for k, v in self._ranges.items()
-            }
+    def __next__(self):
+        return {
+            k: self._rng.choice(v) + self._rng.normal(0, self._sigma)
+            if isinstance(v, np.ndarray)
+            else np.array(v, dtype=np.float64)
+            for k, v in self._ranges.items()
+        }
 
 
 class Simulator:

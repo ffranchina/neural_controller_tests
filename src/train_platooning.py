@@ -41,7 +41,7 @@ follower = model_platooning.Agent("follower", nn_follower, follower_target)
 world_model = model_platooning.World(env, leader, follower, dt=dt)
 
 # Instantiates the world's model
-simulator = misc.Simulator(world_model, pg.sample())
+simulator = misc.Simulator(world_model, pg)
 
 working_dir = "/tmp/experiments/" + f"platooning_{seed:04}"
 

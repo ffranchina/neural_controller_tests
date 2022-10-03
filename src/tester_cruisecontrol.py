@@ -43,7 +43,7 @@ agent = model_cruisecontrol.Agent("car", nn_agent)
 world_model = model_cruisecontrol.World(env, agent, dt=dt)
 
 # Instantiates the world's model
-simulator = misc.Simulator(world_model, pg.sample())
+simulator = misc.Simulator(world_model, pg)
 
 misc.load_models(args.dirname, car=nn_agent)
 
