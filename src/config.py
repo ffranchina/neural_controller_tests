@@ -53,6 +53,20 @@ class ConfigUtils:
             elif unit == "ms":
                 return int(amount / (dt * 1000))
 
+    @staticmethod
+    def get_init_values(config, stage):
+        items = {}
+
+        # Get agents init values
+        for name in config.agent_names:
+            sub_config = config[f"agents.{name}.{stage}"]
+            init_keys = [k for k in sub_config if k.startswith("init_")]
+            for k in init_keys:
+                item_label = k[len("init_") :]
+                items[f"{name}_{item_label}"] = config[f"agents.{name}.{stage}"][k]
+
+        return items
+
 
 class ExperimentalConfiguration:
     def __init__(self, config_filename, seed=None):
@@ -63,7 +77,7 @@ class ExperimentalConfiguration:
 
         if seed is not None:
             self._config["seed"] = seed
-        elif self._config["seed"] is None:
+        elif "seed" not in self._config:
             self._config["seed"] = random.randint(0, 10000)
 
         self._preprocess()
@@ -86,7 +100,7 @@ class ExperimentalConfiguration:
         for name in self.agent_names:
             for sub_agent_config in ["training", "testing"]:
                 sub_config = self._config["agents"][name][sub_agent_config]
-                init_keys = [k for k in sub_config.keys() if k.startswith("init_")]
+                init_keys = [k for k in sub_config if k.startswith("init_")]
                 for k in init_keys:
                     sub_config[k] = ConfigUtils.to_space(sub_config[k])
 
@@ -131,14 +145,12 @@ class ExperimentalConfiguration:
 
         assert type(self._config["agents"][name]["training"]["replay"]) == int
 
-        for sub_agent_config in ["training", "testing"]:
+        for stage in ["training", "testing"]:
             init_keys = [
-                k
-                for k in self._config["agents"][name][sub_agent_config].keys()
-                if k.startswith("init_")
+                k for k in self._config["agents"][name][stage] if k.startswith("init_")
             ]
             for k in init_keys:
-                assert self._config["agents"][name][sub_agent_config][k] is not None
+                assert self._config["agents"][name][stage][k] is not None
 
         assert type(self._config["training"]["simulation_horizon"]) == int
         assert type(self._config["training"]["epochs"]) == int
@@ -149,10 +161,10 @@ class ExperimentalConfiguration:
 
     @property
     def agent_names(self):
-        return tuple(self._config["agents"].keys())
+        return tuple(self._config["agents"])
 
-    def __getitem__(self, item):
-        keys = item.split(".")
+    def __getitem__(self, config_path):
+        keys = config_path.split(".")
         try:
             return functools.reduce(operator.getitem, keys, self._config)
         except KeyError as e:
