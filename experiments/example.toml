@@ -1,0 +1,46 @@
+seed = 1234                             # Seed for the Random Number Generators
+label = 'experiment1'                   # Label to identify the experiment
+model = 'model_platooning'              # Reference to the .py module
+workdir = '/tmp/experiments'            # Experiment's folder
+
+[simulator]
+object = 'World'                        # Class for the whole model
+dt = 0.05                               # Delta of time for each instant
+sigma_sampling = 0.05                   # Deviation for each sampled value
+
+[environment]
+object = 'Environment'                  # Class for the environment model
+
+const_friction = '0.8'                  # TODO: Declaration of model's constants
+
+[agents.attacker]                       # Defines the agent's type
+object = 'Agent'                        # Class for the agent model
+target = 'x <= 10'                      # STL formula for the agent's target
+
+const_max_speed = '50'                  # TODO: Declaration of model's constants
+
+	[agents.attacker.nn]
+	n_layers = 2                        # Number of hidden layers
+	layer_size = 10                     # Dimension of each layer
+	input_noise_size = 2                # Number of noisy input neurons
+	n_coefficients = 3                  # Degree of the forecasting polynomial
+
+	[agents.attacker.training]
+	replay = 5                          # Times of repetition per episode
+	init_position = '0, 0.0'            # Initial configuration for the model
+	init_velocity = '0:10;2, 0:10;2'    # Interval for sampling the configuration
+	init_distance = '0:10;10, 0:10;5'   # format: 'start:end;steps'
+
+	[agents.attacker.testing]
+	init_position = '0, 0.0'
+	init_velocity = '0:5;3, 0:5;2'
+	init_distance = '0:10;2, 0:10;2'
+
+[training]
+epochs = 10                             # Number of training cycles
+episodes = 10                           # Number of training episode per epoch
+simulation_horizon = '5s'               # Time duration of a training simulation
+
+[testing]
+episodes = 10                           # Number of testing episode per epoch
+simulation_horizon = '10s'              # Time duration of a testing simulation
