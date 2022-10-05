@@ -98,8 +98,8 @@ class ExperimentalConfiguration:
 
         # Convert the string into the numpy representation of the space
         for name in self.agent_names:
-            for sub_agent_config in ["training", "testing"]:
-                sub_config = self._config["agents"][name][sub_agent_config]
+            for stage in self.training_stages:
+                sub_config = self._config["agents"][name][stage]
                 init_keys = [k for k in sub_config if k.startswith("init_")]
                 for k in init_keys:
                     sub_config[k] = ConfigUtils.to_space(sub_config[k])
@@ -109,10 +109,11 @@ class ExperimentalConfiguration:
             self._config["simulator"]["dt"],
             self._config["training"]["simulation_horizon"],
         )
-        self._config["testing"]["simulation_horizon"] = ConfigUtils.to_dt_time(
-            self._config["simulator"]["dt"],
-            self._config["testing"]["simulation_horizon"],
-        )
+        if "testing" in self._config:
+            self._config["testing"]["simulation_horizon"] = ConfigUtils.to_dt_time(
+                self._config["simulator"]["dt"],
+                self._config["testing"]["simulation_horizon"],
+            )
 
     def _validate(self):
         assert type(self._config["seed"]) == int
@@ -145,7 +146,7 @@ class ExperimentalConfiguration:
 
         assert type(self._config["agents"][name]["training"]["replay"]) == int
 
-        for stage in ["training", "testing"]:
+        for stage in self.training_stages:
             init_keys = [
                 k for k in self._config["agents"][name][stage] if k.startswith("init_")
             ]
@@ -156,12 +157,20 @@ class ExperimentalConfiguration:
         assert type(self._config["training"]["epochs"]) == int
         assert type(self._config["training"]["episodes"]) == int
 
-        assert type(self._config["testing"]["simulation_horizon"]) == int
-        assert type(self._config["testing"]["episodes"]) == int
+        if "testing" in self._config:
+            assert type(self._config["testing"]["simulation_horizon"]) == int
+            assert type(self._config["testing"]["episodes"]) == int
+
+    @property
+    def training_stages(self):
+        return ["training", "testing"] if "testing" in self._config else ["training"]
 
     @property
     def agent_names(self):
         return tuple(self._config["agents"])
+
+    def __contains__(self, config_path):
+        return self.__getitem__(config_path) != None
 
     def __getitem__(self, config_path):
         keys = config_path.split(".")
