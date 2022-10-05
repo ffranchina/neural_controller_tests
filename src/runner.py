@@ -6,8 +6,8 @@ import config
 import misc
 
 
-def run_experiment(config_filename, seed=None, stdout=True):
-    experiment = config.ExperimentalConfiguration(config_filename, seed)
+def run_experiment(config_filename, label=None, seed=None, stdout=True):
+    experiment = config.ExperimentalConfiguration(config_filename, label, seed)
 
     # Initialize the seeds of the stochastic generators
     seed = experiment["seed"]

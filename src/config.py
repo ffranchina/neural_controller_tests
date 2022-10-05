@@ -69,11 +69,14 @@ class ConfigUtils:
 
 
 class ExperimentalConfiguration:
-    def __init__(self, config_filename, seed=None):
+    def __init__(self, config_filename, label=None, seed=None):
         self._filename = config_filename
 
         with open(config_filename) as f:
             self._config = toml.load(f)
+
+        if label is not None:
+            self._config["label"] = label
 
         if seed is not None:
             self._config["seed"] = seed
