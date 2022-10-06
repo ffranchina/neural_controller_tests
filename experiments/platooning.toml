@@ -1,0 +1,58 @@
+label = 'platooning'
+model = 'model_platooning'
+workdir = '/tmp/experiments'
+
+[simulator]
+object = 'World'
+dt = 0.05
+sigma_sampling = 0.05
+
+[environment]
+object = 'Environment'
+
+[agents.leader]
+object = 'Agent'
+target = '!(G(dist <= 10 & dist >= 2))'
+
+	[agents.leader.nn]
+	n_layers = 2
+	layer_size = 10
+	input_noise_size = 2
+	n_coefficients = 3
+
+	[agents.leader.training]
+	replay = 3
+	init_position = '1:12;15'
+	init_velocity = '0:20;40'
+
+	[agents.leader.testing]
+	init_position = '1:12;15'
+	init_velocity = '0:20;40'
+
+[agents.follower]
+object = 'Agent'
+target = 'G(dist <= 10 & dist >= 2)'
+
+	[agents.follower.nn]
+	n_layers = 2
+	layer_size = 10
+	input_noise_size = 0
+	n_coefficients = 3
+
+	[agents.follower.training]
+	replay = 5
+	init_position = '0'
+	init_velocity = '0:20;40'
+
+	[agents.follower.testing]
+	init_position = '0'
+	init_velocity = '0:20;40'
+
+[training]
+epochs = 10
+episodes = 15
+simulation_horizon = '5s'
+
+[testing]
+episodes = 2
+simulation_horizon = '60s'
