@@ -138,23 +138,27 @@ class ExperimentalConfiguration:
             )
             assert type(self._config["agents"][name]["target"]) == str
 
-        assert type(self._config["agents"][name]["nn"]["n_layers"]) == int
-        assert type(self._config["agents"][name]["nn"]["layer_size"]) == int
+            assert type(self._config["agents"][name]["nn"]["n_layers"]) == int
+            assert type(self._config["agents"][name]["nn"]["layer_size"]) == int
 
-        if self._config["agents"][name]["nn"]["input_noise_size"] is not None:
-            assert type(self._config["agents"][name]["nn"]["input_noise_size"]) == int
+            if self._config["agents"][name]["nn"]["input_noise_size"] is not None:
+                assert (
+                    type(self._config["agents"][name]["nn"]["input_noise_size"]) == int
+                )
 
-        if self._config["agents"][name]["nn"]["n_coefficients"] is not None:
-            assert type(self._config["agents"][name]["nn"]["n_coefficients"]) == int
+            if self._config["agents"][name]["nn"]["n_coefficients"] is not None:
+                assert type(self._config["agents"][name]["nn"]["n_coefficients"]) == int
 
-        assert type(self._config["agents"][name]["training"]["replay"]) == int
+            assert type(self._config["agents"][name]["training"]["replay"]) == int
 
-        for stage in self.training_stages:
-            init_keys = [
-                k for k in self._config["agents"][name][stage] if k.startswith("init_")
-            ]
-            for k in init_keys:
-                assert self._config["agents"][name][stage][k] is not None
+            for stage in self.training_stages:
+                init_keys = [
+                    k
+                    for k in self._config["agents"][name][stage]
+                    if k.startswith("init_")
+                ]
+                for k in init_keys:
+                    assert self._config["agents"][name][stage][k] is not None
 
         assert type(self._config["training"]["simulation_horizon"]) == int
         assert type(self._config["training"]["epochs"]) == int
