@@ -1,0 +1,45 @@
+label = 'cruisecontrol'
+model = 'model_cruisecontrol'
+workdir = '/tmp/experiments'
+
+[simulator]
+object = 'World'
+dt = 0.05
+sigma_sampling = 0.05
+
+[environment]
+object = 'Environment'
+
+	[environment.training]
+	init_seed = '0:1000000'
+
+	[environment.testing]
+	init_seed = '0:1000000'
+
+[agents.car]
+object = 'Agent'
+target = 'G(vel >= 4.75 & vel <= 5.25)'
+
+	[agents.car.nn]
+	n_layers = 2
+	layer_size = 10
+	input_noise_size = 0
+	n_coefficients = 3
+
+	[agents.car.training]
+	replay = 10
+	init_position = '0'
+	init_velocity = '-12:12;25'
+
+	[agents.car.testing]
+	init_position = '0'
+	init_velocity = '-12:12;25'
+
+[training]
+epochs = 10
+episodes = 10
+simulation_horizon = '5s'
+
+[testing]
+episodes = 2
+simulation_horizon = '30s'
