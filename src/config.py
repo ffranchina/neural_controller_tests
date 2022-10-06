@@ -20,22 +20,31 @@ class ConfigUtils:
     def to_space(intervals):
         components = intervals.split(",")
 
-        if ":" not in intervals:
-            return [float(comp) for comp in components]
-        else:
-            dimensions = []
-            for comp in components:
-                try:
+        try:
+            if ":" not in intervals:
+                return [float(comp) for comp in components]
+            elif ";" not in intervals:
+                dimensions = []
+                for comp in components:
+                    start, stop = comp.split(":")
+                    # Makes use of integers spaced by 1
+                    dimension = np.arange(int(start), int(stop))
+                    dimensions.append(dimension)
+            else:
+                dimensions = []
+                for comp in components:
                     start_stop, steps = comp.split(";")
                     start, stop = start_stop.split(":")
+                    # Makes use of float values equally spaced
                     dimension = np.linspace(float(start), float(stop), int(steps))
                     dimensions.append(dimension)
-                except ValueError as e:
-                    return None
 
-            mesh = np.meshgrid(*dimensions, indexing="ij")
-            datapoints = np.stack(mesh).reshape(len(dimensions), -1).T
-            return datapoints
+        except ValueError as e:
+            return None
+
+        mesh = np.meshgrid(*dimensions, indexing="ij")
+        datapoints = np.stack(mesh).reshape(len(dimensions), -1).T
+        return datapoints
 
     @staticmethod
     def to_dt_time(dt, timestring):
@@ -56,6 +65,13 @@ class ConfigUtils:
     @staticmethod
     def get_init_values(config, stage):
         items = {}
+
+        # Get environment init values
+        sub_config = config[f"environment.{stage}"]
+        init_keys = [k for k in sub_config if k.startswith("init_")]
+        for k in init_keys:
+            item_label = k[len("init_") :]
+            items[f"environment_{item_label}"] = config[f"environment.{stage}"][k]
 
         # Get agents init values
         for name in config.agent_names:
@@ -100,8 +116,13 @@ class ExperimentalConfiguration:
             )
 
         # Convert the string into the numpy representation of the space
-        for name in self.agent_names:
-            for stage in self.training_stages:
+        for stage in self.training_stages:
+            sub_config = self._config["environment"][stage]
+            init_keys = [k for k in sub_config if k.startswith("init_")]
+            for k in init_keys:
+                sub_config[k] = ConfigUtils.to_space(sub_config[k])
+
+            for name in self.agent_names:
                 sub_config = self._config["agents"][name][stage]
                 init_keys = [k for k in sub_config if k.startswith("init_")]
                 for k in init_keys:
@@ -131,6 +152,13 @@ class ExperimentalConfiguration:
         assert issubclass(
             self._config["environment"]["object"], abstract_model.Environment
         )
+
+        for stage in self.training_stages:
+            init_keys = [
+                k for k in self._config["environment"][stage] if k.startswith("init_")
+            ]
+            for k in init_keys:
+                assert self._config["environment"][stage][k] is not None
 
         for name in self.agent_names:
             assert issubclass(

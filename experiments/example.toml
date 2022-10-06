@@ -13,6 +13,9 @@ object = 'Environment'                  # Class for the environment model
 
 const_friction = '0.8'                  # TODO: Declaration of model's constants
 
+    # [environment.training]            # Sections where to specify environment
+    # [environment.testing]             # initial configuration intervals
+
 [agents.attacker]                       # Defines the agent's type
 object = 'Agent'                        # Class for the agent model
 target = 'x <= 10'                      # STL formula for the agent's target
@@ -29,7 +32,7 @@ const_max_speed = '50'                  # TODO: Declaration of model's constants
 	replay = 5                          # Times of repetition per episode
 	init_position = '0, 0.0'            # Initial configuration for the model
 	init_velocity = '0:10;2, 0:10;2'    # Interval for sampling the configuration
-	init_distance = '0:10;10, 0:10;5'   # format: 'start:end;steps'
+	init_distance = '0:10;10, 0:10;5'   # format: 'start:end[;steps]'
 
 	[agents.attacker.testing]
 	init_position = '0, 0.0'
