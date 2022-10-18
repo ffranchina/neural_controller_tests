@@ -67,11 +67,12 @@ class ConfigUtils:
         items = {}
 
         # Get environment init values
-        sub_config = config[f"environment.{stage}"]
-        init_keys = [k for k in sub_config if k.startswith("init_")]
-        for k in init_keys:
-            item_label = k[len("init_") :]
-            items[f"environment_{item_label}"] = config[f"environment.{stage}"][k]
+        if stage in config["environment"]:
+            sub_config = config[f"environment.{stage}"]
+            init_keys = [k for k in sub_config if k.startswith("init_")]
+            for k in init_keys:
+                item_label = k[len("init_") :]
+                items[f"environment_{item_label}"] = config[f"environment.{stage}"][k]
 
         # Get agents init values
         for name in config.agent_names:
@@ -117,10 +118,11 @@ class ExperimentalConfiguration:
 
         # Convert the string into the numpy representation of the space
         for stage in self.training_stages:
-            sub_config = self._config["environment"][stage]
-            init_keys = [k for k in sub_config if k.startswith("init_")]
-            for k in init_keys:
-                sub_config[k] = ConfigUtils.to_space(sub_config[k])
+            if stage in self._config["environment"]:
+                sub_config = self._config["environment"][stage]
+                init_keys = [k for k in sub_config if k.startswith("init_")]
+                for k in init_keys:
+                    sub_config[k] = ConfigUtils.to_space(sub_config[k])
 
             for name in self.agent_names:
                 sub_config = self._config["agents"][name][stage]
@@ -154,11 +156,14 @@ class ExperimentalConfiguration:
         )
 
         for stage in self.training_stages:
-            init_keys = [
-                k for k in self._config["environment"][stage] if k.startswith("init_")
-            ]
-            for k in init_keys:
-                assert self._config["environment"][stage][k] is not None
+            if stage in self._config["environment"]:
+                init_keys = [
+                    k
+                    for k in self._config["environment"][stage]
+                    if k.startswith("init_")
+                ]
+                for k in init_keys:
+                    assert self._config["environment"][stage][k] is not None
 
         for name in self.agent_names:
             assert issubclass(
