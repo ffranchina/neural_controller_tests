@@ -1,3 +1,6 @@
+import os
+import shutil
+
 import fire
 import torch
 
@@ -6,8 +9,8 @@ import config
 import misc
 
 
-def run_experiment(config_filename, label=None, seed=None, stdout=True):
-    experiment = config.ExperimentalConfiguration(config_filename, label, seed)
+def run_experiment(config_filepath, label=None, seed=None, stdout=True):
+    experiment = config.ExperimentalConfiguration(config_filepath, label, seed)
 
     # Initialize the seeds of the stochastic generators
     seed = experiment["seed"]
@@ -86,6 +89,11 @@ def run_experiment(config_filename, label=None, seed=None, stdout=True):
 
     # Saves the trained models
     misc.save_models(log_dest, **agents_nn)
+
+    # Copies the experiment .toml file in the log directory
+    config_filename = os.path.basename(config_filepath)
+    dest_config_filepath = os.path.join(log_dest, config_filename)
+    shutil.copyfile(config_filepath, dest_config_filepath)
 
 
 if __name__ == "__main__":

@@ -86,10 +86,10 @@ class ConfigUtils:
 
 
 class ExperimentalConfiguration:
-    def __init__(self, config_filename, label=None, seed=None):
-        self._filename = config_filename
+    def __init__(self, config_filepath, label=None, seed=None):
+        self._filepath = config_filepath
 
-        with open(config_filename) as f:
+        with open(config_filepath) as f:
             self._config = toml.load(f)
 
         if label is not None:
