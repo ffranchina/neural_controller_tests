@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -132,7 +131,7 @@ class Trainer:
 
     def run(self, n_steps, agent_replays, time_horizon=100, *, epoch=0):
         """Trains the architecture and provides logging and visual feedback"""
-        for i in tqdm(range(n_steps)):
+        for i in range(n_steps):
             losses = self.train(agent_replays, time_horizon)
 
             if self.logging:
@@ -190,7 +189,7 @@ class Tester:
         """Test the architecture and provides logging"""
         rho_list = torch.zeros(times)
         percentages = []
-        for i in tqdm(range(times)):
+        for i in range(times):
             percentages.append(self.test(time_horizon))
 
         if self.logging:

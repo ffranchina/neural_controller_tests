@@ -3,6 +3,7 @@ import shutil
 
 import fire
 import torch
+import tqdm
 
 import architecture
 import config
@@ -62,28 +63,33 @@ def run_experiment(config_filepath, label=None, seed=None, stdout=True):
         testing_simulator = misc.Simulator(world_model, testing_hyperspace)
         tester = architecture.Tester(testing_simulator, log_dest)
 
-    for epoch in range(experiment["training.epochs"]):
-        if stdout:
-            print(f"Epoch {epoch+1}/{experiment['training.epochs']}:")
+    with tqdm.trange(
+        experiment["training.epochs"],
+        disable=not stdout,
+        bar_format="{l_bar}{bar}| Epoch {n_fmt}/{total_fmt}, {elapsed}<{remaining}",
+    ) as bar:
 
-        replays = {
-            name: experiment[f"agents.{name}.training.replay"]
-            for name in experiment.agent_names
-        }
+        for epoch in bar:
+            replays = {
+                name: experiment[f"agents.{name}.training.replay"]
+                for name in experiment.agent_names
+            }
 
-        trainer.run(
-            experiment["training.episodes"],
-            replays,
-            experiment["training.simulation_horizon"],
-            epoch=epoch,
-        )
-
-        if "testing" in experiment:
-            tester.run(
-                experiment["testing.episodes"],
-                experiment["testing.simulation_horizon"],
+            bar.set_description("TRAIN")
+            trainer.run(
+                experiment["training.episodes"],
+                replays,
+                experiment["training.simulation_horizon"],
                 epoch=epoch,
             )
+
+            if "testing" in experiment:
+                bar.set_description(" TEST")
+                tester.run(
+                    experiment["testing.episodes"],
+                    experiment["testing.simulation_horizon"],
+                    epoch=epoch,
+                )
 
     agents_nn = {agent.label: agent.nn for agent in agents}
 
