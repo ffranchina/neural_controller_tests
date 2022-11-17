@@ -21,12 +21,14 @@ def run_experiment(config_filepath, label=None, seed=None, stdout=True):
 
     # Initialize the environment object
     environment_class = experiment["environment.object"]
-    environment = environment_class()
+    environment_params = config.ConfigUtils.get_const_values(experiment, "environment")
+    environment = environment_class(**environment_params)
 
     # Initialize the agents' objects
     agents = []
     for name in experiment.agent_names:
         agent_class = experiment[f"agents.{name}.object"]
+        agent_params = config.ConfigUtils.get_const_values(experiment, f"agents.{name}")
         nn = architecture.NeuralAgent(
             agent_class.sensors,
             agent_class.actuators,
@@ -35,7 +37,9 @@ def run_experiment(config_filepath, label=None, seed=None, stdout=True):
             input_noise_size=experiment[f"agents.{name}.nn.input_noise_size"],
             n_coeff=experiment[f"agents.{name}.nn.n_coefficients"],
         )
-        agent = agent_class(name, nn, experiment[f"agents.{name}.target"])
+        agent = agent_class(
+            name, nn, target_formula=experiment[f"agents.{name}.target"], **agent_params
+        )
         agents.append(agent)
 
     # Instantiate the world model

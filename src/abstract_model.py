@@ -4,8 +4,9 @@ import misc
 
 
 class Environment:
-    def __init__(self):
+    def __init__(self, **constants):
         self._agents = None
+        self._constants = constants
 
     def set_agents(self, agents):
         self._agents = agents
@@ -15,7 +16,7 @@ class Agent(ABC):
     sensors = 0
     actuators = 0
 
-    def __init__(self, label, nn, target_formula=None):
+    def __init__(self, label, nn, target_formula=None, **constants):
         assert self.sensors > 0
         assert self.actuators > 0
 
@@ -23,6 +24,7 @@ class Agent(ABC):
         self._nn = nn
 
         self._environment = None
+        self._constants = constants
 
         self._robustness_computer = (
             misc.RobustnessComputer(target_formula) if target_formula else None

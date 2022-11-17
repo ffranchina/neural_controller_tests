@@ -84,6 +84,20 @@ class ConfigUtils:
 
         return items
 
+    @staticmethod
+    def get_const_values(config, target):
+        items = {}
+
+        if target not in config:
+            return items
+        else:
+            const_keys = [k for k in config[target] if k.startswith("const_")]
+            for k in const_keys:
+                item_label = k[len("const_") :]
+                items[item_label] = config[target][k]
+
+            return items
+
 
 class ExperimentalConfiguration:
     def __init__(self, config_filepath, label=None, seed=None):

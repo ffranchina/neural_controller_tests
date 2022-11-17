@@ -11,7 +11,7 @@ sigma_sampling = 0.05                   # Deviation for each sampled value
 [environment]
 object = 'Environment'                  # Class for the environment model
 
-const_friction = '0.8'                  # TODO: Declaration of model's constants
+const_friction = '0.8'                  # Declaration of model's constants
 
     # [environment.training]            # Sections where to specify environment
     # [environment.testing]             # initial configuration intervals
@@ -20,7 +20,7 @@ const_friction = '0.8'                  # TODO: Declaration of model's constants
 object = 'Agent'                        # Class for the agent model
 target = 'x <= 10'                      # STL formula for the agent's target
 
-const_max_speed = '50'                  # TODO: Declaration of model's constants
+const_max_speed = '50'                  # Declaration of model's constants
 
 	[agents.attacker.nn]
 	n_layers = 2                        # Number of hidden layers
