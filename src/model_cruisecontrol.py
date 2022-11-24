@@ -7,16 +7,16 @@ import abstract_model
 class Car:
     """Describes the physical behaviour of the vehicle"""
 
-    def __init__(self):
-        self._max_acceleration = 5.0
+    def __init__(self, max_acceleration, max_velocity, friction_coefficient):
+        self._max_acceleration = max_acceleration
         self._min_acceleration = -self._max_acceleration
-        self._max_velocity = 10.0
+        self._max_velocity = max_velocity
         self._min_velocity = -self._max_velocity
         self.gravity = 9.81
         self.position = torch.tensor(0.0)
         self.velocity = torch.tensor(0.0)
         self.acceleration = torch.tensor(0.0)
-        self.friction_coefficient = 0.01
+        self.friction_coefficient = friction_coefficient
 
     def update(self, in_acceleration, angle, dt):
         """Differential equation for updating the state of the car"""
@@ -37,11 +37,11 @@ class Car:
 
 
 class Road:
-    def __init__(self):
-        self.length = 50
-        self.bumps = 3
+    def __init__(self, road_length, road_bumps, max_angle):
+        self.length = road_length
+        self.bumps = road_bumps
 
-        self._max_angle = 25  # deg
+        self._max_angle = max_angle  # deg
         self._max_angular_coeff = np.tan(np.deg2rad(self._max_angle))
         self._dx = 0.1
 
@@ -88,10 +88,12 @@ class Road:
 
 
 class Environment(abstract_model.Environment):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **constants):
+        super().__init__(**constants)
 
-        self._road = Road()
+        self._road = Road(
+            constants["road_length"], constants["road_bumps"], constants["max_angle"]
+        )
 
     @property
     def seed(self):
@@ -109,10 +111,14 @@ class Agent(abstract_model.Agent):
     sensors = 2
     actuators = 1
 
-    def __init__(self, label, nn, target_formula=None):
-        super().__init__(label, nn, target_formula)
+    def __init__(self, label, nn, target_formula=None, **constants):
+        super().__init__(label, nn, target_formula, **constants)
 
-        self._car = Car()
+        self._car = Car(
+            constants["max_acceleration"],
+            constants["max_velocity"],
+            constants["friction_coefficient"],
+        )
 
     @property
     def position(self):

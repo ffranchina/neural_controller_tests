@@ -6,16 +6,16 @@ import abstract_model
 class Car:
     """Describes the physical behaviour of the vehicle"""
 
-    def __init__(self):
-        self._max_acceleration = 3.0
+    def __init__(self, max_acceleration, max_velocity, friction_coefficient):
+        self._max_acceleration = max_acceleration
         self._min_acceleration = -self._max_acceleration
-        self._max_velocity = 20.0
+        self._max_velocity = max_velocity
         self._min_velocity = 0.0
         self.gravity = 9.81
         self.position = torch.tensor(0.0)
         self.velocity = torch.tensor(0.0)
         self.acceleration = torch.tensor(0.0)
-        self.friction_coefficient = 0.01
+        self.friction_coefficient = friction_coefficient
 
     def update(self, in_acceleration, dt):
         """Differential equation for updating the state of the car"""
@@ -50,10 +50,14 @@ class Agent(abstract_model.Agent):
     sensors = 3
     actuators = 1
 
-    def __init__(self, label, nn, target_formula=None):
-        super().__init__(label, nn, target_formula)
+    def __init__(self, label, nn, target_formula=None, **constants):
+        super().__init__(label, nn, target_formula, **constants)
 
-        self._car = Car()
+        self._car = Car(
+            constants["max_acceleration"],
+            constants["max_velocity"],
+            constants["friction_coefficient"],
+        )
 
     @property
     def position(self):

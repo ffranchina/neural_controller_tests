@@ -7,10 +7,10 @@ import misc
 class Drone:
     """Describes the physical behaviour of the drone"""
 
-    def __init__(self):
-        self._max_acceleration = 2.0
+    def __init__(self, max_acceleration, max_velocity):
+        self._max_acceleration = max_acceleration
         self._min_acceleration = -self._max_acceleration
-        self._max_velocity = 20.0
+        self._max_velocity = max_velocity
         self._min_velocity = -self._max_velocity
         self.position = torch.tensor((0.0, 0.0))
         self.velocity = torch.tensor((0.0, 0.0))
@@ -50,10 +50,10 @@ class Agent(abstract_model.Agent):
     sensors = 3 * 2
     actuators = 1 * 2
 
-    def __init__(self, label, nn, target_formula=None):
-        super().__init__(label, nn, target_formula)
+    def __init__(self, label, nn, target_formula=None, **constants):
+        super().__init__(label, nn, target_formula, **constants)
 
-        self._drone = Drone()
+        self._drone = Drone(constants["max_acceleration"], constants["max_velocity"])
 
     @property
     def position(self):

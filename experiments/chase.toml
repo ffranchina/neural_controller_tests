@@ -14,6 +14,9 @@ object = 'Environment'
 object = 'Leader'
 target = '!(G(dist <= 10 & dist >= 2))'
 
+const_max_acceleration = 2
+const_max_velocity = 20.0
+
 	[agents.leader.nn]
 	n_layers = 2
 	layer_size = 10
@@ -32,6 +35,9 @@ target = '!(G(dist <= 10 & dist >= 2))'
 [agents.follower]
 object = 'Agent'
 target = 'G(dist <= 10 & dist >= 2)'
+
+const_max_acceleration = 2
+const_max_velocity = 20.0
 
 	[agents.follower.nn]
 	n_layers = 2
